@@ -4,44 +4,406 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.luis.mevmantenimiento.ui.theme.MEVMantenimientoTheme
+import com.luis.mevmantenimiento.ui.screens.MenuPrincipalScreen
+import com.luis.mevmantenimiento.ui.screens.MatrizBaseScreen
+import com.luis.mevmantenimiento.ui.screens.ActivoResumen
+import com.luis.mevmantenimiento.ui.screens.ActivosScreen
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
+
         setContent {
             MEVMantenimientoTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+
+                var perfilUsuario by remember {
+                    mutableStateOf<PerfilUsuario?>(null)
+                }
+
+                var pantallaActual by remember {
+                    mutableStateOf("MENU")
+                }
+
+                var activos by remember {
+                    mutableStateOf<List<ActivoResumen>>(emptyList())
+                }
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                        if (perfilUsuario == null) {
+                            LoginScreen(
+                                onLoginSuccess = { perfil ->
+                                    perfilUsuario = perfil
+                                    pantallaActual = "MENU"
+                                }
+                            )
+                        } else {
+                            when (pantallaActual) {
+                                "ACTIVOS" -> {
+                                    ActivosScreen(
+                                        activos = activos,
+                                        onSeleccionarActivo = { _ ->
+                                            // Después crearemos la pantalla de detalle.
+                                        },
+                                        onAgregarActivo = {
+                                            // Después crearemos el formulario para agregar activos.
+                                        },
+                                        onVolver = {
+                                            pantallaActual = "MATRIZ_BASE"
+                                        }
+                                    )
+                                }
+
+                                "MATRIZ_BASE" -> {
+                                    MatrizBaseScreen(
+                                        onSeleccionarModulo = { modulo ->
+                                            if (modulo == "ACTIVOS") {
+                                                pantallaActual = "ACTIVOS"
+                                            }
+                                        },
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                else -> {
+                                    // Menú principal existente
+                                    MenuPrincipalScreen(
+                                        perfil = perfilUsuario!!,
+                                        onSeleccionarOpcion = { opcion ->
+                                            if (opcion == "Matriz base") {
+                                                pantallaActual = "MATRIZ_BASE"
+                                            }
+                                        },
+                                        onCerrarSesion = {
+                                            FirebaseAuth.getInstance().signOut()
+                                            perfilUsuario = null
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+data class PerfilUsuario(
+    val uid: String,
+    val nombres: String,
+    val apellidos: String,
+    val email: String,
+    val cargo: String,
+    val rol: String,
+    val estadoUsuario: String
+)
+
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun LoginScreen(
+    onLoginSuccess: (PerfilUsuario) -> Unit
+) {
+    var email by remember {
+        mutableStateOf("")
+    }
+
+    var password by remember {
+        mutableStateOf("")
+    }
+
+    var mostrarPassword by remember {
+        mutableStateOf(false)
+    }
+
+    var cargando by remember {
+        mutableStateOf(false)
+    }
+
+    var mensaje by remember {
+        mutableStateOf("")
+    }
+
+    val focusManager = LocalFocusManager.current
+    val auth = remember { FirebaseAuth.getInstance() }
+    val firestore = remember { FirebaseFirestore.getInstance() }
+
+    fun iniciarSesion() {
+        if (email.isBlank() || password.isBlank()) {
+            mensaje = "Ingresa el correo y la contraseña."
+            return
+        }
+
+        cargando = true
+        mensaje = ""
+
+        auth.signInWithEmailAndPassword(
+            email.trim(),
+            password
+        ).addOnCompleteListener { tarea ->
+
+            if (!tarea.isSuccessful) {
+                cargando = false
+                mensaje = "Correo o contraseña incorrectos."
+                return@addOnCompleteListener
+            }
+
+            val uid = auth.currentUser?.uid
+
+            if (uid == null) {
+                cargando = false
+                mensaje = "No fue posible identificar al usuario."
+                auth.signOut()
+                return@addOnCompleteListener
+            }
+
+            firestore.collection("usuarios")
+                .document(uid)
+                .get()
+                .addOnSuccessListener { documento ->
+
+                    if (!documento.exists()) {
+                        cargando = false
+                        mensaje = "El usuario no tiene un perfil registrado."
+                        auth.signOut()
+                        return@addOnSuccessListener
+                    }
+
+                    val estadoUsuario =
+                        documento.getString("estadoUsuario").orEmpty()
+
+                    if (estadoUsuario != "ACTIVO") {
+                        cargando = false
+                        mensaje = "El usuario se encuentra inactivo."
+                        auth.signOut()
+                        return@addOnSuccessListener
+                    }
+
+                    val perfil = PerfilUsuario(
+                        uid = uid,
+                        nombres = documento.getString("nombres").orEmpty(),
+                        apellidos = documento.getString("apellidos").orEmpty(),
+                        email = documento.getString("email").orEmpty(),
+                        cargo = documento.getString("cargo").orEmpty(),
+                        rol = documento.getString("rol").orEmpty(),
+                        estadoUsuario = estadoUsuario
+                    )
+
+                    cargando = false
+                    onLoginSuccess(perfil)
+                }
+                .addOnFailureListener {
+                    cargando = false
+                    mensaje = "No se pudo consultar el perfil del usuario."
+                    auth.signOut()
+                }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "MEV Mantenimiento",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Gestión de mantenimiento de flota",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = {
+                email = it
+                mensaje = ""
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text("Correo electrónico")
+            },
+            singleLine = true,
+            enabled = !cargando,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = {
+                    focusManager.moveFocus(FocusDirection.Down)
+                }
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = {
+                password = it
+                mensaje = ""
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text("Contraseña")
+            },
+            singleLine = true,
+            enabled = !cargando,
+            visualTransformation = if (mostrarPassword) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                TextButton(
+                    onClick = {
+                        mostrarPassword = !mostrarPassword
+                    }
+                ) {
+                    Text(
+                        text = if (mostrarPassword) {
+                            "Ocultar"
+                        } else {
+                            "Mostrar"
+                        }
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                    iniciarSesion()
+                }
+            )
+        )
+
+        if (mensaje.isNotBlank()) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = mensaje,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = {
+                focusManager.clearFocus()
+                iniciarSesion()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !cargando
+        ) {
+            if (cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.height(22.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Iniciar sesión")
+            }
+        }
+    }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    MEVMantenimientoTheme {
-        Greeting("Android")
+fun HomeScreen(
+    perfil: PerfilUsuario,
+    onLogout: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(28.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Bienvenido, ${perfil.nombres}",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = perfil.cargo,
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Rol: ${perfil.rol}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onLogout
+        ) {
+            Text("Cerrar sesión")
+        }
     }
 }
