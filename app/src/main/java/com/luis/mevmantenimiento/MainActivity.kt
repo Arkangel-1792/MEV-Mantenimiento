@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
                             )
                         } else {
                             when (pantallaActual) {
-                                oScreen.kt                                "DETALLE_ACTIVO" -> {
+                                 "DETALLE_ACTIVO" -> {
                                     activoSeleccionado?.let { activo ->
                                         DetalleActivoScreen(
                                             activo = activo,
