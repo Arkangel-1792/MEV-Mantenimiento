@@ -42,6 +42,8 @@ import com.luis.mevmantenimiento.ui.screens.MenuPrincipalScreen
 import com.luis.mevmantenimiento.ui.screens.MatrizBaseScreen
 import com.luis.mevmantenimiento.ui.screens.ActivoResumen
 import com.luis.mevmantenimiento.ui.screens.ActivosScreen
+import com.luis.mevmantenimiento.data.ImportadorActivos
+import com.luis.mevmantenimiento.ui.screens.DetalleActivoScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -64,6 +66,20 @@ class MainActivity : ComponentActivity() {
                 var activos by remember {
                     mutableStateOf<List<ActivoResumen>>(emptyList())
                 }
+                var activoSeleccionado by remember {
+                    mutableStateOf<ActivoResumen?>(null)
+                }
+                var importandoActivos by remember {
+                    mutableStateOf(false)
+                }
+
+                var progresoImportacion by remember {
+                    mutableStateOf("")
+                }
+
+                var mensajeImportacion by remember {
+                    mutableStateOf("")
+                }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
@@ -83,11 +99,25 @@ class MainActivity : ComponentActivity() {
                             )
                         } else {
                             when (pantallaActual) {
+                                oScreen.kt                                "DETALLE_ACTIVO" -> {
+                                    activoSeleccionado?.let { activo ->
+                                        DetalleActivoScreen(
+                                            activo = activo,
+                                            onEditar = {
+                                                // Después crearemos el formulario de edición.
+                                            },
+                                            onVolver = {
+                                                pantallaActual = "ACTIVOS"
+                                            }
+                                        )
+                                    }
+                                }
                                 "ACTIVOS" -> {
                                     ActivosScreen(
                                         activos = activos,
-                                        onSeleccionarActivo = { _ ->
-                                            // Después crearemos la pantalla de detalle.
+                                        onSeleccionarActivo = { activo ->
+                                            activoSeleccionado = activo
+                                            pantallaActual = "DETALLE_ACTIVO"
                                         },
                                         onAgregarActivo = {
                                             // Después crearemos el formulario para agregar activos.
@@ -97,14 +127,81 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
-
                                 "MATRIZ_BASE" -> {
                                     MatrizBaseScreen(
+                                        importandoActivos = importandoActivos,
+                                        progresoImportacion = progresoImportacion,
+                                        mensajeImportacion = mensajeImportacion,
                                         onSeleccionarModulo = { modulo ->
-                                            if (modulo == "ACTIVOS") {
-                                                pantallaActual = "ACTIVOS"
+
+                                            when (modulo) {
+
+                                                "ACTIVOS" -> {
+                                                    mensajeImportacion = "Cargando activos..."
+
+                                                    ImportadorActivos.cargarActivos(
+                                                        onFinalizado = { datos ->
+
+                                                            activos = datos.map { activo ->
+                                                                ActivoResumen(
+                                                                    codigo = activo["codigo"]?.toString().orEmpty(),
+                                                                    subtipo = activo["subtipo"]?.toString().orEmpty(),
+                                                                    tipo = activo["tipo"]?.toString().orEmpty(),
+                                                                    marca = activo["marca"]?.toString().orEmpty(),
+                                                                    modelo = activo["modelo"]?.toString().orEmpty(),
+                                                                    indicador = activo["indicador"]?.toString().orEmpty(),
+                                                                    horometro = (activo["horometro"] as? Number)?.toDouble(),
+                                                                    kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
+                                                                    ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
+                                                                    status = activo["status"]?.toString().orEmpty()
+                                                                )
+                                                            }.sortedBy { activo ->
+                                                                activo.codigo
+                                                            }
+
+                                                            mensajeImportacion = ""
+                                                            pantallaActual = "ACTIVOS"
+                                                        },
+
+                                                        onError = { mensaje ->
+                                                            mensajeImportacion = mensaje
+                                                        }
+                                                    )
+                                                }
+
+                                                "IMPORTAR_EXCEL" -> {
+                                                    if (!importandoActivos) {
+
+                                                        importandoActivos = true
+                                                        progresoImportacion = "Preparando importación..."
+                                                        mensajeImportacion = ""
+
+                                                        ImportadorActivos.importar(
+                                                            context = this@MainActivity,
+
+                                                            onProgreso = { actual, total ->
+                                                                progresoImportacion =
+                                                                    "Importando activos: $actual de $total"
+                                                            },
+
+                                                            onFinalizado = { cantidad ->
+                                                                importandoActivos = false
+                                                                progresoImportacion = ""
+                                                                mensajeImportacion =
+                                                                    "Importación finalizada: $cantidad activos cargados."
+                                                            },
+
+                                                            onError = { mensaje ->
+                                                                importandoActivos = false
+                                                                progresoImportacion = ""
+                                                                mensajeImportacion = mensaje
+                                                            }
+                                                        )
+                                                    }
+                                                }
                                             }
                                         },
+
                                         onVolver = {
                                             pantallaActual = "MENU"
                                         }
