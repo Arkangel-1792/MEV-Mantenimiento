@@ -44,6 +44,8 @@ import com.luis.mevmantenimiento.ui.screens.ActivoResumen
 import com.luis.mevmantenimiento.ui.screens.ActivosScreen
 import com.luis.mevmantenimiento.data.ImportadorActivos
 import com.luis.mevmantenimiento.ui.screens.DetalleActivoScreen
+import com.luis.mevmantenimiento.ui.screens.NuevoMantenimientoScreen
+import com.luis.mevmantenimiento.data.MantenimientoRepository
 
 class MainActivity : ComponentActivity() {
 
@@ -80,6 +82,13 @@ class MainActivity : ComponentActivity() {
                 var mensajeImportacion by remember {
                     mutableStateOf("")
                 }
+                var mensajeMantenimiento by remember {
+                    mutableStateOf("")
+                }
+
+                var guardandoMantenimiento by remember {
+                    mutableStateOf(false)
+                }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
@@ -99,6 +108,95 @@ class MainActivity : ComponentActivity() {
                             )
                         } else {
                             when (pantallaActual) {
+                                "NUEVO_MANTENIMIENTO" -> {
+                                    NuevoMantenimientoScreen(
+                                        activos = activos,
+                                        guardandoMantenimiento = guardandoMantenimiento,
+                                        mensajeMantenimiento = mensajeMantenimiento,
+
+                                        onGuardarBorrador = {
+                                                codigoActivo,
+                                                tipoServicio,
+                                                kilometraje,
+                                                horometro,
+                                                accionEjecutada,
+                                                observaciones,
+                                                ordenTrabajo,
+                                                numeroPedido ->
+
+                                            if (!guardandoMantenimiento) {
+                                                guardandoMantenimiento = true
+                                                mensajeMantenimiento = "Guardando borrador..."
+
+                                                MantenimientoRepository.guardarRegistro(
+                                                    codigoActivo = codigoActivo,
+                                                    tipoServicio = tipoServicio,
+                                                    kilometraje = kilometraje,
+                                                    horometro = horometro,
+                                                    accionEjecutada = accionEjecutada,
+                                                    observaciones = observaciones,
+                                                    ordenTrabajo = ordenTrabajo,
+                                                    numeroPedido = numeroPedido,
+                                                    estadoRegistro = "BORRADOR",
+
+                                                    onFinalizado = { idRegistro ->
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento =
+                                                            "Borrador guardado correctamente. ID: $idRegistro"
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onEnviar = {
+                                                codigoActivo,
+                                                tipoServicio,
+                                                kilometraje,
+                                                horometro,
+                                                accionEjecutada,
+                                                observaciones,
+                                                ordenTrabajo,
+                                                numeroPedido ->
+
+                                            if (!guardandoMantenimiento) {
+                                                guardandoMantenimiento = true
+                                                mensajeMantenimiento = "Enviando registro..."
+
+                                                MantenimientoRepository.guardarRegistro(
+                                                    codigoActivo = codigoActivo,
+                                                    tipoServicio = tipoServicio,
+                                                    kilometraje = kilometraje,
+                                                    horometro = horometro,
+                                                    accionEjecutada = accionEjecutada,
+                                                    observaciones = observaciones,
+                                                    ordenTrabajo = ordenTrabajo,
+                                                    numeroPedido = numeroPedido,
+                                                    estadoRegistro = "ENVIADO",
+
+                                                    onFinalizado = { idRegistro ->
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento =
+                                                            "Registro enviado correctamente. ID: $idRegistro"
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
                                  "DETALLE_ACTIVO" -> {
                                     activoSeleccionado?.let { activo ->
                                         DetalleActivoScreen(
@@ -213,8 +311,43 @@ class MainActivity : ComponentActivity() {
                                     MenuPrincipalScreen(
                                         perfil = perfilUsuario!!,
                                         onSeleccionarOpcion = { opcion ->
-                                            if (opcion == "Matriz base") {
-                                                pantallaActual = "MATRIZ_BASE"
+                                            when (opcion) {
+                                                "Matriz base" -> {
+                                                    pantallaActual = "MATRIZ_BASE"
+                                                }
+
+                                                "Nuevo mantenimiento" -> {
+                                                    if (activos.isEmpty()) {
+                                                        ImportadorActivos.cargarActivos(
+                                                            onFinalizado = { datos ->
+                                                                activos = datos.map { activo ->
+                                                                    ActivoResumen(
+                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
+                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
+                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
+                                                                        marca = activo["marca"]?.toString().orEmpty(),
+                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
+                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
+                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
+                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
+                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
+                                                                        status = activo["status"]?.toString().orEmpty()
+                                                                    )
+                                                                }.sortedBy { activo ->
+                                                                    activo.codigo
+                                                                }
+
+                                                                pantallaActual = "NUEVO_MANTENIMIENTO"
+                                                            },
+
+                                                            onError = { mensaje ->
+                                                                mensajeImportacion = mensaje
+                                                            }
+                                                        )
+                                                    } else {
+                                                        pantallaActual = "NUEVO_MANTENIMIENTO"
+                                                    }
+                                                }
                                             }
                                         },
                                         onCerrarSesion = {
