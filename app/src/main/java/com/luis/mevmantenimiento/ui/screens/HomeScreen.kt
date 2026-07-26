@@ -221,6 +221,10 @@ private fun obtenerOpcionesPorRol(
                 descripcion = "Registrar cambios, reparaciones, rotaciones o bajas."
             ),
             OpcionMenu(
+                titulo = "Mi historial",
+                descripcion = "Consultar los registros de mantenimiento que he enviado."
+            ),
+            OpcionMenu(
                 titulo = "Revisión de registros",
                 descripcion = "Aprobar, devolver o corregir registros enviados."
             ),

@@ -103,6 +103,39 @@ object MantenimientoRepository {
             }
     }
 
+    fun cargarMiHistorial(
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val usuarioActual = FirebaseAuth.getInstance().currentUser
+
+        if (usuarioActual == null) {
+            onError("No existe una sesión de usuario activa.")
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection("registros_mantenimiento")
+            .whereEqualTo("uidUsuario", usuarioActual.uid)
+            .whereEqualTo("estadoRegistro", "ENVIADO")
+            .get()
+            .addOnSuccessListener { resultado ->
+
+                val lista = resultado.documents.map { documento ->
+                    documento.data.orEmpty().toMutableMap().apply {
+                        this["id"] = documento.id
+                    }
+                }
+
+                onFinalizado(lista)
+            }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudo cargar el historial: ${error.message}"
+                )
+            }
+    }
+
     fun actualizarBorrador(
         idRegistro: String,
         tipoServicio: String,

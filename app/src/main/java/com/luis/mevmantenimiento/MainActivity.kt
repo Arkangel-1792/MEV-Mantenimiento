@@ -49,6 +49,8 @@ import com.luis.mevmantenimiento.data.MantenimientoRepository
 import com.luis.mevmantenimiento.ui.screens.BorradorMantenimiento
 import com.luis.mevmantenimiento.ui.screens.MisBorradoresScreen
 import com.luis.mevmantenimiento.ui.screens.EditarBorradorScreen
+import com.luis.mevmantenimiento.ui.screens.MiHistorialScreen
+import com.luis.mevmantenimiento.ui.screens.RegistroHistorial
 
 class MainActivity : ComponentActivity() {
 
@@ -106,6 +108,18 @@ class MainActivity : ComponentActivity() {
                 }
 
                 var mensajeBorradores by remember {
+                    mutableStateOf("")
+                }
+
+                var historial by remember {
+                    mutableStateOf<List<RegistroHistorial>>(emptyList())
+                }
+
+                var cargandoHistorial by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeHistorial by remember {
                     mutableStateOf("")
                 }
 
@@ -245,6 +259,16 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
                                     }
+                                }
+                                "MI_HISTORIAL" -> {
+                                    MiHistorialScreen(
+                                        registros = historial,
+                                        cargando = cargandoHistorial,
+                                        mensaje = mensajeHistorial,
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
                                 }
 
                                 "MIS_BORRADORES" -> {
@@ -536,7 +560,39 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     )
                                                 }
+                                                "Mi historial" -> {
+                                                    cargandoHistorial = true
+                                                    mensajeHistorial = ""
+                                                    historial = emptyList()
 
+                                                    MantenimientoRepository.cargarMiHistorial(
+                                                        onFinalizado = { datos ->
+                                                            historial = datos.map { registro ->
+                                                                RegistroHistorial(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    tipoServicio = registro["tipoServicio"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    accionEjecutada = registro["accionEjecutada"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    ordenTrabajo = registro["ordenTrabajo"]?.toString().orEmpty(),
+                                                                    numeroPedido = registro["numeroPedido"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                )
+                                                            }
+
+                                                            cargandoHistorial = false
+                                                            pantallaActual = "MI_HISTORIAL"
+                                                        },
+
+                                                        onError = { mensaje ->
+                                                            cargandoHistorial = false
+                                                            mensajeHistorial = mensaje
+                                                            pantallaActual = "MI_HISTORIAL"
+                                                        }
+                                                    )
+                                                }
                                             }
                                         },
                                         onCerrarSesion = {
