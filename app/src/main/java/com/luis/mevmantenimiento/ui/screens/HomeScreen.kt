@@ -144,7 +144,7 @@ private fun obtenerOpcionesPorRol(
             ),
             OpcionMenu(
                 titulo = "Mis borradores",
-                descripcion = "Continuar registros pendientes de envío."
+                descripcion = "Consultar, editar y enviar registros pendientes."
             ),
             OpcionMenu(
                 titulo = "Mi historial",
@@ -186,6 +186,10 @@ private fun obtenerOpcionesPorRol(
                 descripcion = "Registrar actividades preventivas o correctivas."
             ),
             OpcionMenu(
+                titulo = "Mis borradores",
+                descripcion = "Consultar, editar y enviar registros pendientes."
+            ),
+            OpcionMenu(
                 titulo = "Vulcanización",
                 descripcion = "Registrar tomas de huella e intervenciones."
             ),
@@ -203,6 +207,10 @@ private fun obtenerOpcionesPorRol(
             OpcionMenu(
                 titulo = "Nuevo mantenimiento",
                 descripcion = "Registrar mantenimientos preventivos o correctivos."
+            ),
+            OpcionMenu(
+                titulo = "Mis borradores",
+                descripcion = "Consultar, editar y enviar registros pendientes."
             ),
             OpcionMenu(
                 titulo = "Toma general de huella",

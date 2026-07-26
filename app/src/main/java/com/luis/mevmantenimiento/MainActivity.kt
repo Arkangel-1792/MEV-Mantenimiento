@@ -46,6 +46,9 @@ import com.luis.mevmantenimiento.data.ImportadorActivos
 import com.luis.mevmantenimiento.ui.screens.DetalleActivoScreen
 import com.luis.mevmantenimiento.ui.screens.NuevoMantenimientoScreen
 import com.luis.mevmantenimiento.data.MantenimientoRepository
+import com.luis.mevmantenimiento.ui.screens.BorradorMantenimiento
+import com.luis.mevmantenimiento.ui.screens.MisBorradoresScreen
+import com.luis.mevmantenimiento.ui.screens.EditarBorradorScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -90,6 +93,22 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(false)
                 }
 
+                var borradores by remember {
+                    mutableStateOf<List<BorradorMantenimiento>>(emptyList())
+                }
+
+                var borradorSeleccionado by remember {
+                    mutableStateOf<BorradorMantenimiento?>(null)
+                }
+
+                var cargandoBorradores by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeBorradores by remember {
+                    mutableStateOf("")
+                }
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
@@ -108,6 +127,141 @@ class MainActivity : ComponentActivity() {
                             )
                         } else {
                             when (pantallaActual) {
+                                "EDITAR_BORRADOR" -> {
+                                    borradorSeleccionado?.let { borrador ->
+                                        EditarBorradorScreen(
+                                            borrador = borrador,
+                                            guardando = guardandoMantenimiento,
+                                            mensaje = mensajeMantenimiento,
+
+                                            onActualizarBorrador = {
+                                                    id,
+                                                    tipoServicio,
+                                                    kilometraje,
+                                                    horometro,
+                                                    accionEjecutada,
+                                                    observaciones,
+                                                    ordenTrabajo,
+                                                    numeroPedido ->
+
+                                                guardandoMantenimiento = true
+                                                mensajeMantenimiento = "Guardando cambios..."
+
+                                                MantenimientoRepository.actualizarBorrador(
+                                                    idRegistro = id,
+                                                    tipoServicio = tipoServicio,
+                                                    kilometraje = kilometraje,
+                                                    horometro = horometro,
+                                                    accionEjecutada = accionEjecutada,
+                                                    observaciones = observaciones,
+                                                    ordenTrabajo = ordenTrabajo,
+                                                    numeroPedido = numeroPedido,
+
+                                                    onFinalizado = {
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento =
+                                                            "Borrador actualizado correctamente."
+
+                                                        cargandoBorradores = true
+
+                                                        MantenimientoRepository.cargarMisBorradores(
+                                                            onFinalizado = { datos ->
+                                                                borradores = datos.map { borradorActualizado ->
+                                                                    BorradorMantenimiento(
+                                                                        id = borradorActualizado["id"]?.toString().orEmpty(),
+                                                                        codigoActivo = borradorActualizado["codigoActivo"]?.toString().orEmpty(),
+                                                                        tipoServicio = borradorActualizado["tipoServicio"]?.toString().orEmpty(),
+                                                                        kilometraje = (borradorActualizado["kilometraje"] as? Number)?.toDouble(),
+                                                                        horometro = (borradorActualizado["horometro"] as? Number)?.toDouble(),
+                                                                        accionEjecutada = borradorActualizado["accionEjecutada"]?.toString().orEmpty(),
+                                                                        observaciones = borradorActualizado["observaciones"]?.toString().orEmpty(),
+                                                                        ordenTrabajo = borradorActualizado["ordenTrabajo"]?.toString().orEmpty(),
+                                                                        numeroPedido = borradorActualizado["numeroPedido"]?.toString().orEmpty(),
+                                                                        estadoRegistro = borradorActualizado["estadoRegistro"]?.toString().orEmpty()
+                                                                    )
+                                                                }
+
+                                                                borradorSeleccionado = borradores.firstOrNull {
+                                                                    it.id == borradorSeleccionado?.id
+                                                                }
+
+                                                                cargandoBorradores = false
+                                                            },
+
+                                                            onError = { mensaje ->
+                                                                cargandoBorradores = false
+                                                                mensajeMantenimiento = mensaje
+                                                            }
+                                                        )
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento = mensaje
+                                                    }
+                                                )
+                                            },
+
+                                            onEnviarBorrador = {
+                                                    id,
+                                                    tipoServicio,
+                                                    kilometraje,
+                                                    horometro,
+                                                    accionEjecutada,
+                                                    observaciones,
+                                                    ordenTrabajo,
+                                                    numeroPedido ->
+
+                                                guardandoMantenimiento = true
+                                                mensajeMantenimiento = "Enviando borrador..."
+
+                                                MantenimientoRepository.enviarBorrador(
+                                                    idRegistro = id,
+                                                    tipoServicio = tipoServicio,
+                                                    kilometraje = kilometraje,
+                                                    horometro = horometro,
+                                                    accionEjecutada = accionEjecutada,
+                                                    observaciones = observaciones,
+                                                    ordenTrabajo = ordenTrabajo,
+                                                    numeroPedido = numeroPedido,
+
+                                                    onFinalizado = {
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento =
+                                                            "Borrador enviado correctamente."
+                                                        pantallaActual = "MENU"
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        guardandoMantenimiento = false
+                                                        mensajeMantenimiento = mensaje
+                                                    }
+                                                )
+                                            },
+
+                                            onVolver = {
+                                                mensajeMantenimiento = ""
+                                                pantallaActual = "MIS_BORRADORES"
+                                            }
+                                        )
+                                    }
+                                }
+
+                                "MIS_BORRADORES" -> {
+                                    MisBorradoresScreen(
+                                        borradores = borradores,
+                                        cargando = cargandoBorradores,
+                                        mensaje = mensajeBorradores,
+                                        onSeleccionarBorrador = { borrador ->
+                                            borradorSeleccionado = borrador
+                                            pantallaActual = "EDITAR_BORRADOR"
+                                        },
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
                                 "NUEVO_MANTENIMIENTO" -> {
                                     NuevoMantenimientoScreen(
                                         activos = activos,
@@ -312,6 +466,7 @@ class MainActivity : ComponentActivity() {
                                         perfil = perfilUsuario!!,
                                         onSeleccionarOpcion = { opcion ->
                                             when (opcion) {
+
                                                 "Matriz base" -> {
                                                     pantallaActual = "MATRIZ_BASE"
                                                 }
@@ -348,6 +503,40 @@ class MainActivity : ComponentActivity() {
                                                         pantallaActual = "NUEVO_MANTENIMIENTO"
                                                     }
                                                 }
+                                                "Mis borradores" -> {
+                                                    cargandoBorradores = true
+                                                    mensajeBorradores = ""
+                                                    borradores = emptyList()
+
+                                                    MantenimientoRepository.cargarMisBorradores(
+                                                        onFinalizado = { datos ->
+                                                            borradores = datos.map { borrador ->
+                                                                BorradorMantenimiento(
+                                                                    id = borrador["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = borrador["codigoActivo"]?.toString().orEmpty(),
+                                                                    tipoServicio = borrador["tipoServicio"]?.toString().orEmpty(),
+                                                                    kilometraje = (borrador["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (borrador["horometro"] as? Number)?.toDouble(),
+                                                                    accionEjecutada = borrador["accionEjecutada"]?.toString().orEmpty(),
+                                                                    observaciones = borrador["observaciones"]?.toString().orEmpty(),
+                                                                    ordenTrabajo = borrador["ordenTrabajo"]?.toString().orEmpty(),
+                                                                    numeroPedido = borrador["numeroPedido"]?.toString().orEmpty(),
+                                                                    estadoRegistro = borrador["estadoRegistro"]?.toString().orEmpty()
+                                                                )
+                                                            }
+
+                                                            cargandoBorradores = false
+                                                            pantallaActual = "MIS_BORRADORES"
+                                                        },
+
+                                                        onError = { mensaje ->
+                                                            cargandoBorradores = false
+                                                            mensajeBorradores = mensaje
+                                                            pantallaActual = "MIS_BORRADORES"
+                                                        }
+                                                    )
+                                                }
+
                                             }
                                         },
                                         onCerrarSesion = {
