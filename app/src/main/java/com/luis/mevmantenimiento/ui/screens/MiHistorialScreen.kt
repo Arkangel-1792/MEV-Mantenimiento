@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 data class RegistroHistorial(
@@ -29,7 +30,8 @@ data class RegistroHistorial(
     val observaciones: String,
     val ordenTrabajo: String,
     val numeroPedido: String,
-    val estadoRegistro: String
+    val estadoRegistro: String,
+    val motivoDevolucion: String = ""
 )
 
 @Composable
@@ -55,7 +57,7 @@ fun MiHistorialScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Consulta los mantenimientos enviados anteriormente.",
+                text = "Consulta el estado de los registros que has enviado.",
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -95,7 +97,7 @@ fun MiHistorialScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "No existen registros enviados.",
+                    text = "No existen registros en tu historial.",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -139,6 +141,8 @@ fun MiHistorialScreen(
 private fun RegistroHistorialCard(
     registro: RegistroHistorial
 ) {
+    val colorEstado = obtenerColorEstado(registro.estadoRegistro)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -147,11 +151,17 @@ private fun RegistroHistorialCard(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(
                 text = registro.codigoActivo,
                 style = MaterialTheme.typography.titleMedium
+            )
+
+            Text(
+                text = "Estado: ${registro.estadoRegistro}",
+                style = MaterialTheme.typography.labelLarge,
+                color = colorEstado
             )
 
             Text(
@@ -193,7 +203,38 @@ private fun RegistroHistorialCard(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+
+            if (
+                registro.estadoRegistro == "DEVUELTO" &&
+                registro.motivoDevolucion.isNotBlank()
+            ) {
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Motivo de devolución:",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+
+                Text(
+                    text = registro.motivoDevolucion,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun obtenerColorEstado(
+    estado: String
+): Color {
+    return when (estado) {
+        "APROBADO" -> Color(0xFF2E7D32)
+        "DEVUELTO" -> MaterialTheme.colorScheme.error
+        "ENVIADO" -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurface
     }
 }
 

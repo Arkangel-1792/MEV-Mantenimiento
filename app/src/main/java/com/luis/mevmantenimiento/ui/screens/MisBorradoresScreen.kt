@@ -30,7 +30,8 @@ data class BorradorMantenimiento(
     val observaciones: String,
     val ordenTrabajo: String,
     val numeroPedido: String,
-    val estadoRegistro: String
+    val estadoRegistro: String,
+    val motivoDevolucion: String = ""
 )
 
 @Composable
@@ -50,20 +51,19 @@ fun MisBorradoresScreen(
             modifier = Modifier.padding(horizontal = 20.dp)
         ) {
             Text(
-                text = "Mis borradores",
+                text = "Mis borradores y correcciones",
                 style = MaterialTheme.typography.headlineSmall
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Registros guardados que todavía pueden editarse y enviarse.",
+                text = "Registros guardados o devueltos que todavía pueden editarse y enviarse.",
                 style = MaterialTheme.typography.bodyMedium
             )
 
             if (mensaje.isNotBlank()) {
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Text(
                     text = mensaje,
                     style = MaterialTheme.typography.bodyMedium
@@ -72,9 +72,8 @@ fun MisBorradoresScreen(
 
             if (cargando) {
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Text(
-                    text = "Cargando borradores...",
+                    text = "Cargando registros...",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -82,7 +81,7 @@ fun MisBorradoresScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Borradores encontrados: ${borradores.size}",
+                text = "Registros encontrados: ${borradores.size}",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -97,7 +96,7 @@ fun MisBorradoresScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "No tienes borradores pendientes.",
+                    text = "No tienes borradores ni registros devueltos pendientes.",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -113,9 +112,7 @@ fun MisBorradoresScreen(
             ) {
                 items(
                     items = borradores,
-                    key = { borrador ->
-                        borrador.id
-                    }
+                    key = { borrador -> borrador.id }
                 ) { borrador ->
                     BorradorCard(
                         borrador = borrador,
@@ -147,6 +144,8 @@ private fun BorradorCard(
     borrador: BorradorMantenimiento,
     onEditar: () -> Unit
 ) {
+    val esDevuelto = borrador.estadoRegistro == "DEVUELTO"
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -154,14 +153,27 @@ private fun BorradorCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = borrador.codigoActivo,
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (esDevuelto) {
+                    "Estado: DEVUELTO PARA CORRECCIÓN"
+                } else {
+                    "Estado: BORRADOR"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                color = if (esDevuelto) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
 
             Text(
                 text = "Servicio: ${borrador.tipoServicio}",
@@ -182,13 +194,37 @@ private fun BorradorCard(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (esDevuelto) {
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Motivo de devolución:",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+
+                Text(
+                    text = borrador.motivoDevolucion.ifBlank {
+                        "El revisor no registró un motivo."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = onEditar,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Editar borrador")
+                Text(
+                    if (esDevuelto) {
+                        "Corregir registro"
+                    } else {
+                        "Editar borrador"
+                    }
+                )
             }
         }
     }

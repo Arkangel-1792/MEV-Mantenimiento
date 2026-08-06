@@ -51,6 +51,8 @@ import com.luis.mevmantenimiento.ui.screens.MisBorradoresScreen
 import com.luis.mevmantenimiento.ui.screens.EditarBorradorScreen
 import com.luis.mevmantenimiento.ui.screens.MiHistorialScreen
 import com.luis.mevmantenimiento.ui.screens.RegistroHistorial
+import com.luis.mevmantenimiento.ui.screens.RegistroRevision
+import com.luis.mevmantenimiento.ui.screens.RevisionRegistrosScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -123,6 +125,18 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf("")
                 }
 
+                var registrosRevision by remember {
+                    mutableStateOf<List<RegistroRevision>>(emptyList())
+                }
+
+                var cargandoRevision by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeRevision by remember {
+                    mutableStateOf("")
+                }
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
@@ -191,7 +205,8 @@ class MainActivity : ComponentActivity() {
                                                                         observaciones = borradorActualizado["observaciones"]?.toString().orEmpty(),
                                                                         ordenTrabajo = borradorActualizado["ordenTrabajo"]?.toString().orEmpty(),
                                                                         numeroPedido = borradorActualizado["numeroPedido"]?.toString().orEmpty(),
-                                                                        estadoRegistro = borradorActualizado["estadoRegistro"]?.toString().orEmpty()
+                                                                        estadoRegistro = borradorActualizado["estadoRegistro"]?.toString().orEmpty(),
+                                                                        motivoDevolucion = borradorActualizado["motivoDevolucion"]?.toString().orEmpty()
                                                                     )
                                                                 }
 
@@ -259,6 +274,76 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
                                     }
+                                }
+                                "REVISION_REGISTROS" -> {
+                                    RevisionRegistrosScreen(
+                                        registros = registrosRevision,
+                                        cargando = cargandoRevision,
+                                        mensaje = mensajeRevision,
+
+                                        onAprobar = { registro ->
+                                            if (!cargandoRevision) {
+                                                cargandoRevision = true
+                                                mensajeRevision = "Aprobando registro..."
+
+                                                MantenimientoRepository.actualizarEstadoRevision(
+                                                    idRegistro = registro.id,
+                                                    nuevoEstado = "APROBADO",
+
+                                                    onFinalizado = {
+                                                        registrosRevision =
+                                                            registrosRevision.filter {
+                                                                it.id != registro.id
+                                                            }
+
+                                                        cargandoRevision = false
+                                                        mensajeRevision =
+                                                            "Registro ${registro.codigoActivo} " +
+                                                                    "aprobado correctamente."
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        cargandoRevision = false
+                                                        mensajeRevision = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onDevolver = { registro, motivoDevolucion ->
+                                            if (!cargandoRevision) {
+                                                cargandoRevision = true
+                                                mensajeRevision = "Devolviendo registro..."
+
+                                                MantenimientoRepository.devolverRegistro(
+                                                    idRegistro = registro.id,
+                                                    motivoDevolucion = motivoDevolucion,
+
+                                                    onFinalizado = {
+                                                        registrosRevision =
+                                                            registrosRevision.filter {
+                                                                it.id != registro.id
+                                                            }
+
+                                                        cargandoRevision = false
+                                                        mensajeRevision =
+                                                            "Registro ${registro.codigoActivo} " +
+                                                                    "devuelto para corrección."
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        cargandoRevision = false
+                                                        mensajeRevision = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onVolver = {
+                                            mensajeRevision = ""
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
                                 }
                                 "MI_HISTORIAL" -> {
                                     MiHistorialScreen(
@@ -375,7 +460,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
-                                 "DETALLE_ACTIVO" -> {
+                                "DETALLE_ACTIVO" -> {
                                     activoSeleccionado?.let { activo ->
                                         DetalleActivoScreen(
                                             activo = activo,
@@ -545,7 +630,8 @@ class MainActivity : ComponentActivity() {
                                                                     observaciones = borrador["observaciones"]?.toString().orEmpty(),
                                                                     ordenTrabajo = borrador["ordenTrabajo"]?.toString().orEmpty(),
                                                                     numeroPedido = borrador["numeroPedido"]?.toString().orEmpty(),
-                                                                    estadoRegistro = borrador["estadoRegistro"]?.toString().orEmpty()
+                                                                    estadoRegistro = borrador["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = borrador["motivoDevolucion"]?.toString().orEmpty()
                                                                 )
                                                             }
 
@@ -560,6 +646,7 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     )
                                                 }
+
                                                 "Mi historial" -> {
                                                     cargandoHistorial = true
                                                     mensajeHistorial = ""
@@ -578,7 +665,8 @@ class MainActivity : ComponentActivity() {
                                                                     observaciones = registro["observaciones"]?.toString().orEmpty(),
                                                                     ordenTrabajo = registro["ordenTrabajo"]?.toString().orEmpty(),
                                                                     numeroPedido = registro["numeroPedido"]?.toString().orEmpty(),
-                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
                                                                 )
                                                             }
 
@@ -590,6 +678,41 @@ class MainActivity : ComponentActivity() {
                                                             cargandoHistorial = false
                                                             mensajeHistorial = mensaje
                                                             pantallaActual = "MI_HISTORIAL"
+                                                        }
+                                                    )
+                                                }
+
+                                                "Revisión de registros" -> {
+                                                    cargandoRevision = true
+                                                    mensajeRevision = ""
+                                                    registrosRevision = emptyList()
+
+                                                    MantenimientoRepository.cargarRegistrosPendientesRevision(
+                                                        onFinalizado = { datos ->
+                                                            registrosRevision = datos.map { registro ->
+                                                                RegistroRevision(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    tipoServicio = registro["tipoServicio"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    accionEjecutada = registro["accionEjecutada"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    ordenTrabajo = registro["ordenTrabajo"]?.toString().orEmpty(),
+                                                                    numeroPedido = registro["numeroPedido"]?.toString().orEmpty(),
+                                                                    uidUsuario = registro["uidUsuario"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                )
+                                                            }
+
+                                                            cargandoRevision = false
+                                                            pantallaActual = "REVISION_REGISTROS"
+                                                        },
+
+                                                        onError = { mensaje ->
+                                                            cargandoRevision = false
+                                                            mensajeRevision = mensaje
+                                                            pantallaActual = "REVISION_REGISTROS"
                                                         }
                                                     )
                                                 }
