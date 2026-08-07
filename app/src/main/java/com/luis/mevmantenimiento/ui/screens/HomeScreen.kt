@@ -158,6 +158,14 @@ private fun obtenerOpcionesPorRol(
                 descripcion = "Registrar la medición general de las llantas de un activo."
             ),
             OpcionMenu(
+                titulo = "Borradores de huella",
+                descripcion = "Continuar y enviar tomas de huella guardadas."
+            ),
+            OpcionMenu(
+                titulo = "Historial de huellas",
+                descripcion = "Consultar tomas enviadas, aprobadas o devueltas."
+            ),
+            OpcionMenu(
                 titulo = "Intervención de llanta",
                 descripcion = "Registrar cambios, rotaciones, reparaciones o bajas."
             ),
@@ -215,6 +223,10 @@ private fun obtenerOpcionesPorRol(
             OpcionMenu(
                 titulo = "Toma general de huella",
                 descripcion = "Registrar la condición general de las llantas."
+            ),
+            OpcionMenu(
+                titulo = "Revisión de huellas",
+                descripcion = "Aprobar o devolver tomas de huella enviadas."
             ),
             OpcionMenu(
                 titulo = "Intervención de llanta",

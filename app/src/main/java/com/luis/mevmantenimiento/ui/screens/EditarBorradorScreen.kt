@@ -12,6 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -53,24 +55,18 @@ fun EditarBorradorScreen(
     ) -> Unit,
     onVolver: () -> Unit
 ) {
+    val esDevuelto = borrador.estadoRegistro == "DEVUELTO"
+
     var tipoServicio by remember(borrador.id) {
         mutableStateOf(borrador.tipoServicio)
     }
 
     var kilometraje by remember(borrador.id) {
-        mutableStateOf(
-            borrador.kilometraje
-                ?.toString()
-                .orEmpty()
-        )
+        mutableStateOf(borrador.kilometraje?.toString().orEmpty())
     }
 
     var horometro by remember(borrador.id) {
-        mutableStateOf(
-            borrador.horometro
-                ?.toString()
-                .orEmpty()
-        )
+        mutableStateOf(borrador.horometro?.toString().orEmpty())
     }
 
     var accionEjecutada by remember(borrador.id) {
@@ -97,7 +93,11 @@ fun EditarBorradorScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Editar borrador",
+            text = if (esDevuelto) {
+                "Corregir registro devuelto"
+            } else {
+                "Editar borrador"
+            },
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -106,10 +106,44 @@ fun EditarBorradorScreen(
             style = MaterialTheme.typography.titleMedium
         )
 
-        Text(
-            text = "Puedes modificar el registro antes de enviarlo.",
-            style = MaterialTheme.typography.bodyMedium
-        )
+        if (esDevuelto) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Motivo de devolución",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+
+                    Text(
+                        text = borrador.motivoDevolucion.ifBlank {
+                            "El revisor no registró un motivo."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+
+                    Text(
+                        text = "Realiza la corrección y vuelve a enviar el mismo registro.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        } else {
+            Text(
+                text = "Puedes modificar el registro antes de enviarlo.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
 
         if (mensaje.isNotBlank()) {
             Text(
@@ -136,60 +170,46 @@ fun EditarBorradorScreen(
         ) {
             FilterChip(
                 selected = tipoServicio == "PREVENTIVO",
-                onClick = {
-                    tipoServicio = "PREVENTIVO"
-                },
-                label = {
-                    Text("Preventivo")
-                }
+                onClick = { tipoServicio = "PREVENTIVO" },
+                enabled = !guardando,
+                label = { Text("Preventivo") }
             )
 
             FilterChip(
                 selected = tipoServicio == "CORRECTIVO",
-                onClick = {
-                    tipoServicio = "CORRECTIVO"
-                },
-                label = {
-                    Text("Correctivo")
-                }
+                onClick = { tipoServicio = "CORRECTIVO" },
+                enabled = !guardando,
+                label = { Text("Correctivo") }
             )
         }
 
         OutlinedTextField(
             value = kilometraje,
-            onValueChange = {
-                kilometraje = it
-            },
+            onValueChange = { kilometraje = it },
             modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Kilometraje")
-            },
+            label = { Text("Kilometraje") },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),
+            enabled = !guardando,
             singleLine = true
         )
 
         OutlinedTextField(
             value = horometro,
-            onValueChange = {
-                horometro = it
-            },
+            onValueChange = { horometro = it },
             modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Horómetro")
-            },
+            label = { Text("Horómetro") },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),
+            enabled = !guardando,
             singleLine = true
         )
 
         OutlinedTextField(
             value = accionEjecutada,
-            onValueChange = {
-                accionEjecutada = it
-            },
+            onValueChange = { accionEjecutada = it },
             modifier = Modifier.fillMaxWidth(),
             label = {
                 Text(
@@ -200,42 +220,34 @@ fun EditarBorradorScreen(
                     }
                 )
             },
+            enabled = !guardando,
             minLines = 3
         )
 
         OutlinedTextField(
             value = observaciones,
-            onValueChange = {
-                observaciones = it
-            },
+            onValueChange = { observaciones = it },
             modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Observaciones")
-            },
+            label = { Text("Observaciones") },
+            enabled = !guardando,
             minLines = 3
         )
 
         OutlinedTextField(
             value = ordenTrabajo,
-            onValueChange = {
-                ordenTrabajo = it
-            },
+            onValueChange = { ordenTrabajo = it },
             modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Orden de trabajo")
-            },
+            label = { Text("Orden de trabajo") },
+            enabled = !guardando,
             singleLine = true
         )
 
         OutlinedTextField(
             value = numeroPedido,
-            onValueChange = {
-                numeroPedido = it
-            },
+            onValueChange = { numeroPedido = it },
             modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Número de pedido")
-            },
+            label = { Text("Número de pedido") },
+            enabled = !guardando,
             singleLine = true
         )
 
@@ -273,15 +285,21 @@ fun EditarBorradorScreen(
                     numeroPedido
                 )
             },
-            enabled = !guardando &&
-                    accionEjecutada.isNotBlank(),
+            enabled = !guardando && accionEjecutada.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Enviar borrador")
+            Text(
+                if (esDevuelto) {
+                    "Reenviar registro corregido"
+                } else {
+                    "Enviar borrador"
+                }
+            )
         }
 
         OutlinedButton(
             onClick = onVolver,
+            enabled = !guardando,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Volver a mis borradores")

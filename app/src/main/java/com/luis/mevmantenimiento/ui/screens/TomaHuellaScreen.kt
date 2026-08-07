@@ -28,6 +28,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Scaffold
+import com.luis.mevmantenimiento.voice.VoiceFloatingButton
+import com.luis.mevmantenimiento.voice.VoiceCommandParser
+import com.luis.mevmantenimiento.voice.VoiceCommand
 
 @Composable
 fun TomaHuellaScreen(
@@ -93,283 +97,489 @@ fun TomaHuellaScreen(
     val cantidadPosiciones = obtenerCantidadPosiciones(
         activoSeleccionado
     )
+    var textoReconocido by remember {
+        mutableStateOf("")
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    var mensajeVoz by remember {
+        mutableStateOf("")
+    }
+
+    fun guardarDesdeVoz(
+        estado: String
     ) {
-        Text(
-            text = "Toma general de huella",
-            style = MaterialTheme.typography.headlineSmall
-        )
+        val activo = activoSeleccionado
 
-        Text(
-            text = "Registra el estado general de las llantas del equipo.",
-            style = MaterialTheme.typography.bodyMedium
-        )
+        if (activo == null) {
+            mensajeVoz =
+                "Primero debes seleccionar un activo."
+            return
+        }
 
-        OutlinedButton(
-            onClick = {
-                menuActivosExpandido = true
-            },
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth()
+        val huellasRegistro = List(12) { indice ->
+            if (indice < cantidadPosiciones) {
+                huellas[indice]
+            } else {
+                ""
+            }
+        }
+
+        estadoRegistro = estado
+
+        onGuardar(
+            activo.codigo,
+            proyecto,
+            kilometraje,
+            horometro,
+            huellasRegistro,
+            estadoGeneral,
+            novedad,
+            nombreTecnico,
+            estado
+        )
+    }
+
+    fun ejecutarComandoVoz(
+        texto: String
+    ) {
+        when (
+            val comando =
+                VoiceCommandParser.interpretar(texto)
         ) {
-            Text(
-                text = activoSeleccionado?.let {
-                    "${it.codigo} - ${it.subtipo}"
-                } ?: "Seleccionar activo"
+            is VoiceCommand.SeleccionarActivo -> {
+
+                val activoEncontrado =
+                    activos.firstOrNull { activo ->
+                        activo.codigo.equals(
+                            comando.codigo,
+                            ignoreCase = true
+                        )
+                    }
+
+                if (activoEncontrado == null) {
+                    mensajeVoz =
+                        "No se encontró el activo ${comando.codigo}."
+                    return
+                }
+
+                activoSeleccionado = activoEncontrado
+
+                kilometraje =
+                    activoEncontrado.kilometraje
+                        ?.toString()
+                        .orEmpty()
+
+                horometro =
+                    activoEncontrado.horometro
+                        ?.toString()
+                        .orEmpty()
+
+                huellas.indices.forEach { indice ->
+                    huellas[indice] = ""
+                }
+
+                mensajeVoz =
+                    "Activo ${activoEncontrado.codigo} seleccionado."
+            }
+
+            is VoiceCommand.ActualizarPosicion -> {
+
+                if (activoSeleccionado == null) {
+                    mensajeVoz =
+                        "Primero debes seleccionar un activo."
+                    return
+                }
+
+                val indice =
+                    comando.posicion - 1
+
+                if (
+                    indice < 0 ||
+                    indice >= cantidadPosiciones
+                ) {
+                    mensajeVoz =
+                        "La posición ${comando.posicion} no corresponde a este activo."
+                    return
+                }
+
+                huellas[indice] = comando.valor
+
+                mensajeVoz =
+                    "P${comando.posicion} registrada con ${comando.valor} milímetros."
+            }
+
+            is VoiceCommand.ActualizarProyecto -> {
+                proyecto = comando.valor
+
+                mensajeVoz =
+                    "Proyecto actualizado: ${comando.valor}."
+            }
+
+            is VoiceCommand.ActualizarKilometraje -> {
+                kilometraje = comando.valor
+
+                mensajeVoz =
+                    "Kilometraje actualizado: ${comando.valor}."
+            }
+
+            is VoiceCommand.ActualizarHorometro -> {
+                horometro = comando.valor
+
+                mensajeVoz =
+                    "Horómetro actualizado: ${comando.valor}."
+            }
+
+            is VoiceCommand.ActualizarEstadoGeneral -> {
+                estadoGeneral = comando.valor
+
+                mensajeVoz =
+                    "Estado general actualizado."
+            }
+
+            is VoiceCommand.ActualizarNovedad -> {
+                novedad = comando.valor
+
+                mensajeVoz =
+                    "Novedad actualizada."
+            }
+
+            VoiceCommand.GuardarBorrador -> {
+                guardarDesdeVoz("BORRADOR")
+            }
+
+            VoiceCommand.EnviarRegistro -> {
+                if (nombreTecnico.isBlank()) {
+                    mensajeVoz =
+                        "Ingresa el nombre del técnico antes de enviar."
+                    return
+                }
+
+                guardarDesdeVoz("ENVIADO")
+            }
+
+            is VoiceCommand.Desconocido -> {
+                mensajeVoz =
+                    "No se entendió el comando. Inténtalo nuevamente."
+            }
+        }
+    }
+
+    Scaffold(
+        floatingActionButton = {
+            VoiceFloatingButton(
+                onTextoReconocido = { texto ->
+                    textoReconocido = texto
+                    mensajeVoz = ""
+
+                    ejecutarComandoVoz(texto)
+                },
+                onError = { error ->
+                    mensajeVoz = error
+                },
+                habilitado = !guardando
             )
         }
 
-        DropdownMenu(
-            expanded = menuActivosExpandido,
-            onDismissRequest = {
-                menuActivosExpandido = false
-            }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding)
+                .padding(
+                    start = 20.dp,
+                    top = 20.dp,
+                    end = 20.dp,
+                    bottom = 100.dp
+                ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            activos.forEach { activo ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            "${activo.codigo} - ${activo.subtipo}"
-                        )
-                    },
-                    onClick = {
-                        activoSeleccionado = activo
-                        menuActivosExpandido = false
+            Text(
+                text = "Toma general de huella",
+                style = MaterialTheme.typography.headlineSmall
+            )
 
-                        kilometraje =
-                            activo.kilometraje
-                                ?.toString()
-                                .orEmpty()
+            if (textoReconocido.isNotBlank()) {
+                Text(
+                    text = "Comando reconocido:",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
 
-                        horometro =
-                            activo.horometro
-                                ?.toString()
-                                .orEmpty()
-
-                        huellas.indices.forEach { indice ->
-                            huellas[indice] = ""
-                        }
-                    }
+                Text(
+                    text = textoReconocido,
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
-        }
 
-        if (activoSeleccionado != null) {
-            Text(
-                text = "Posiciones habilitadas: $cantidadPosiciones",
-                style = MaterialTheme.typography.bodyMedium
+            if (mensajeVoz.isNotBlank()) {
+                Text(
+                    text = mensajeVoz,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            OutlinedButton(
+                onClick = {
+                    menuActivosExpandido = true
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = activoSeleccionado?.let {
+                        "${it.codigo} - ${it.subtipo}"
+                    } ?: "Seleccionar activo"
+                )
+            }
+
+            DropdownMenu(
+                expanded = menuActivosExpandido,
+                onDismissRequest = {
+                    menuActivosExpandido = false
+                }
+            ) {
+                activos.forEach { activo ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "${activo.codigo} - ${activo.subtipo}"
+                            )
+                        },
+                        onClick = {
+                            activoSeleccionado = activo
+                            menuActivosExpandido = false
+
+                            kilometraje =
+                                activo.kilometraje
+                                    ?.toString()
+                                    .orEmpty()
+
+                            horometro =
+                                activo.horometro
+                                    ?.toString()
+                                    .orEmpty()
+
+                            huellas.indices.forEach { indice ->
+                                huellas[indice] = ""
+                            }
+                        }
+                    )
+                }
+            }
+
+            if (activoSeleccionado != null) {
+                Text(
+                    text = "Posiciones habilitadas: $cantidadPosiciones",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            OutlinedTextField(
+                value = proyecto,
+                onValueChange = {
+                    proyecto = it
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text("Proyecto")
+                },
+                singleLine = true
             )
-        }
 
-        OutlinedTextField(
-            value = proyecto,
-            onValueChange = {
-                proyecto = it
-            },
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Proyecto")
-            },
-            singleLine = true
-        )
+            OutlinedTextField(
+                value = kilometraje,
+                onValueChange = {
+                    kilometraje = it
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text("Kilometraje")
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                ),
+                singleLine = true
+            )
 
-        OutlinedTextField(
-            value = kilometraje,
-            onValueChange = {
-                kilometraje = it
-            },
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Kilometraje")
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal
-            ),
-            singleLine = true
-        )
+            OutlinedTextField(
+                value = horometro,
+                onValueChange = {
+                    horometro = it
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text("Horómetro")
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                ),
+                singleLine = true
+            )
 
-        OutlinedTextField(
-            value = horometro,
-            onValueChange = {
-                horometro = it
-            },
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Horómetro")
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal
-            ),
-            singleLine = true
-        )
+            if (activoSeleccionado != null) {
+                Text(
+                    text = "Profundidad de huella por posición",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
-        if (activoSeleccionado != null) {
+                for (indice in 0 until cantidadPosiciones) {
+                    OutlinedTextField(
+                        value = huellas[indice],
+                        onValueChange = {
+                            huellas[indice] = it
+                        },
+                        enabled = !guardando,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text("P${indice + 1} - Huella en mm")
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        singleLine = true
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = estadoGeneral,
+                onValueChange = {
+                    estadoGeneral = it
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text("Estado general de las llantas")
+                },
+                minLines = 2
+            )
+
+            OutlinedTextField(
+                value = novedad,
+                onValueChange = {
+                    novedad = it
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text("Novedad presentada")
+                },
+                minLines = 3
+            )
+
+            OutlinedTextField(
+                value = nombreTecnico,
+                onValueChange = {
+                    nombreTecnico = it
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text("Nombre del técnico")
+                },
+                singleLine = true
+            )
+
             Text(
-                text = "Profundidad de huella por posición",
+                text = "Estado del registro",
                 style = MaterialTheme.typography.titleMedium
             )
 
-            for (indice in 0 until cantidadPosiciones) {
-                OutlinedTextField(
-                    value = huellas[indice],
-                    onValueChange = {
-                        huellas[indice] = it
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = estadoRegistro == "BORRADOR",
+                    onClick = {
+                        estadoRegistro = "BORRADOR"
                     },
                     enabled = !guardando,
-                    modifier = Modifier.fillMaxWidth(),
                     label = {
-                        Text("P${indice + 1} - Huella en mm")
+                        Text("Borrador")
+                    }
+                )
+
+                FilterChip(
+                    selected = estadoRegistro == "ENVIADO",
+                    onClick = {
+                        estadoRegistro = "ENVIADO"
                     },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal
-                    ),
-                    singleLine = true
+                    enabled = !guardando,
+                    label = {
+                        Text("Enviado")
+                    }
                 )
             }
-        }
 
-        OutlinedTextField(
-            value = estadoGeneral,
-            onValueChange = {
-                estadoGeneral = it
-            },
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Estado general de las llantas")
-            },
-            minLines = 2
-        )
-
-        OutlinedTextField(
-            value = novedad,
-            onValueChange = {
-                novedad = it
-            },
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Novedad presentada")
-            },
-            minLines = 3
-        )
-
-        OutlinedTextField(
-            value = nombreTecnico,
-            onValueChange = {
-                nombreTecnico = it
-            },
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text("Nombre del técnico")
-            },
-            singleLine = true
-        )
-
-        Text(
-            text = "Estado del registro",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterChip(
-                selected = estadoRegistro == "BORRADOR",
-                onClick = {
-                    estadoRegistro = "BORRADOR"
-                },
-                enabled = !guardando,
-                label = {
-                    Text("Borrador")
-                }
-            )
-
-            FilterChip(
-                selected = estadoRegistro == "ENVIADO",
-                onClick = {
-                    estadoRegistro = "ENVIADO"
-                },
-                enabled = !guardando,
-                label = {
-                    Text("Enviado")
-                }
-            )
-        }
-
-        if (mensaje.isNotBlank()) {
-            Text(
-                text = mensaje,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        if (guardando) {
-            Text(
-                text = "Guardando información...",
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
-            onClick = {
-                val activo = activoSeleccionado
-                    ?: return@Button
-
-                val huellasRegistro = List(12) { indice ->
-                    if (indice < cantidadPosiciones) {
-                        huellas[indice]
-                    } else {
-                        ""
-                    }
-                }
-
-                onGuardar(
-                    activo.codigo,
-                    proyecto,
-                    kilometraje,
-                    horometro,
-                    huellasRegistro,
-                    estadoGeneral,
-                    novedad,
-                    nombreTecnico,
-                    estadoRegistro
+            if (mensaje.isNotBlank()) {
+                Text(
+                    text = mensaje,
+                    style = MaterialTheme.typography.bodyMedium
                 )
-            },
-            enabled =
-                !guardando &&
-                        activoSeleccionado != null &&
-                        nombreTecnico.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                if (estadoRegistro == "BORRADOR") {
-                    "Guardar borrador"
-                } else {
-                    "Enviar toma de huella"
-                }
-            )
-        }
+            }
 
-        OutlinedButton(
-            onClick = onVolver,
-            enabled = !guardando,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Volver al menú principal")
+            if (guardando) {
+                Text(
+                    text = "Guardando información...",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    val activo = activoSeleccionado
+                        ?: return@Button
+
+                    val huellasRegistro = List(12) { indice ->
+                        if (indice < cantidadPosiciones) {
+                            huellas[indice]
+                        } else {
+                            ""
+                        }
+                    }
+
+                    onGuardar(
+                        activo.codigo,
+                        proyecto,
+                        kilometraje,
+                        horometro,
+                        huellasRegistro,
+                        estadoGeneral,
+                        novedad,
+                        nombreTecnico,
+                        estadoRegistro
+                    )
+                },
+                enabled =
+                    !guardando &&
+                            activoSeleccionado != null &&
+                            nombreTecnico.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    if (estadoRegistro == "BORRADOR") {
+                        "Guardar borrador"
+                    } else {
+                        "Enviar toma de huella"
+                    }
+                )
+            }
+
+            OutlinedButton(
+                onClick = onVolver,
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Volver al menú principal")
+            }
         }
     }
 }

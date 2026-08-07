@@ -53,6 +53,15 @@ import com.luis.mevmantenimiento.ui.screens.MiHistorialScreen
 import com.luis.mevmantenimiento.ui.screens.RegistroHistorial
 import com.luis.mevmantenimiento.ui.screens.RegistroRevision
 import com.luis.mevmantenimiento.ui.screens.RevisionRegistrosScreen
+import com.luis.mevmantenimiento.ui.screens.TomaHuellaScreen
+import com.luis.mevmantenimiento.data.VulcanizacionRepository
+import com.luis.mevmantenimiento.ui.screens.BorradorHuella
+import com.luis.mevmantenimiento.ui.screens.MisBorradoresHuellaScreen
+import com.luis.mevmantenimiento.ui.screens.EditarBorradorHuellaScreen
+import com.luis.mevmantenimiento.ui.screens.HistorialHuellaScreen
+import com.luis.mevmantenimiento.ui.screens.RegistroHistorialHuella
+import com.luis.mevmantenimiento.ui.screens.RevisionHuellaScreen
+import com.luis.mevmantenimiento.ui.screens.RegistroRevisionHuella
 
 class MainActivity : ComponentActivity() {
 
@@ -134,6 +143,54 @@ class MainActivity : ComponentActivity() {
                 }
 
                 var mensajeRevision by remember {
+                    mutableStateOf("")
+                }
+
+                var guardandoHuella by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeHuella by remember {
+                    mutableStateOf("")
+                }
+
+                var borradoresHuella by remember {
+                    mutableStateOf<List<BorradorHuella>>(emptyList())
+                }
+
+                var borradorHuellaSeleccionado by remember {
+                    mutableStateOf<BorradorHuella?>(null)
+                }
+
+                var cargandoBorradoresHuella by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeBorradoresHuella by remember {
+                    mutableStateOf("")
+                }
+
+                var historialHuella by remember {
+                    mutableStateOf<List<RegistroHistorialHuella>>(emptyList())
+                }
+
+                var cargandoHistorialHuella by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeHistorialHuella by remember {
+                    mutableStateOf("")
+                }
+
+                var registrosRevisionHuella by remember {
+                    mutableStateOf<List<RegistroRevisionHuella>>(emptyList())
+                }
+
+                var cargandoRevisionHuella by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeRevisionHuella by remember {
                     mutableStateOf("")
                 }
 
@@ -366,6 +423,247 @@ class MainActivity : ComponentActivity() {
                                             pantallaActual = "EDITAR_BORRADOR"
                                         },
                                         onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "REVISION_HUELLA" -> {
+                                    RevisionHuellaScreen(
+                                        registros = registrosRevisionHuella,
+                                        cargando = cargandoRevisionHuella,
+                                        mensaje = mensajeRevisionHuella,
+
+                                        onAprobar = { registro ->
+                                            if (!cargandoRevisionHuella) {
+                                                cargandoRevisionHuella = true
+                                                mensajeRevisionHuella = "Aprobando toma de huella..."
+
+                                                VulcanizacionRepository.aprobarTomaHuella(
+                                                    idRegistro = registro.id,
+                                                    onFinalizado = {
+                                                        registrosRevisionHuella =
+                                                            registrosRevisionHuella.filter {
+                                                                it.id != registro.id
+                                                            }
+                                                        cargandoRevisionHuella = false
+                                                        mensajeRevisionHuella =
+                                                            "Toma de ${registro.codigoActivo} aprobada correctamente."
+                                                    },
+                                                    onError = { mensaje ->
+                                                        cargandoRevisionHuella = false
+                                                        mensajeRevisionHuella = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onDevolver = { registro, motivoDevolucion ->
+                                            if (!cargandoRevisionHuella) {
+                                                cargandoRevisionHuella = true
+                                                mensajeRevisionHuella = "Devolviendo toma de huella..."
+
+                                                VulcanizacionRepository.devolverTomaHuella(
+                                                    idRegistro = registro.id,
+                                                    motivoDevolucion = motivoDevolucion,
+                                                    onFinalizado = {
+                                                        registrosRevisionHuella =
+                                                            registrosRevisionHuella.filter {
+                                                                it.id != registro.id
+                                                            }
+                                                        cargandoRevisionHuella = false
+                                                        mensajeRevisionHuella =
+                                                            "Toma de ${registro.codigoActivo} devuelta para corrección."
+                                                    },
+                                                    onError = { mensaje ->
+                                                        cargandoRevisionHuella = false
+                                                        mensajeRevisionHuella = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onVolver = {
+                                            mensajeRevisionHuella = ""
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "HISTORIAL_HUELLA" -> {
+                                    HistorialHuellaScreen(
+                                        registros = historialHuella,
+                                        cargando = cargandoHistorialHuella,
+                                        mensaje = mensajeHistorialHuella,
+                                        onVolver = {
+                                            mensajeHistorialHuella = ""
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "EDITAR_BORRADOR_HUELLA" -> {
+                                    borradorHuellaSeleccionado?.let { borrador ->
+                                        EditarBorradorHuellaScreen(
+                                            borrador = borrador,
+                                            activos = activos,
+                                            guardando = guardandoHuella,
+                                            mensaje = mensajeHuella,
+
+                                            onActualizarBorrador = {
+                                                    idRegistro,
+                                                    codigoActivo,
+                                                    proyecto,
+                                                    kilometraje,
+                                                    horometro,
+                                                    huellas,
+                                                    estadoGeneral,
+                                                    novedad,
+                                                    nombreTecnico ->
+
+                                                if (!guardandoHuella) {
+                                                    guardandoHuella = true
+                                                    mensajeHuella = "Guardando cambios..."
+
+                                                    VulcanizacionRepository.actualizarBorrador(
+                                                        idRegistro = idRegistro,
+                                                        codigoActivo = codigoActivo,
+                                                        proyecto = proyecto,
+                                                        kilometraje = kilometraje,
+                                                        horometro = horometro,
+                                                        huellas = huellas,
+                                                        estadoGeneral = estadoGeneral,
+                                                        novedad = novedad,
+                                                        nombreTecnico = nombreTecnico,
+                                                        onFinalizado = {
+                                                            guardandoHuella = false
+                                                            mensajeHuella =
+                                                                "Borrador actualizado correctamente."
+                                                        },
+                                                        onError = { mensaje ->
+                                                            guardandoHuella = false
+                                                            mensajeHuella = mensaje
+                                                        }
+                                                    )
+                                                }
+                                            },
+
+                                            onEnviarBorrador = {
+                                                    idRegistro,
+                                                    codigoActivo,
+                                                    proyecto,
+                                                    kilometraje,
+                                                    horometro,
+                                                    huellas,
+                                                    estadoGeneral,
+                                                    novedad,
+                                                    nombreTecnico ->
+
+                                                if (!guardandoHuella) {
+                                                    guardandoHuella = true
+                                                    mensajeHuella = "Enviando registro..."
+
+                                                    VulcanizacionRepository.enviarBorrador(
+                                                        idRegistro = idRegistro,
+                                                        codigoActivo = codigoActivo,
+                                                        proyecto = proyecto,
+                                                        kilometraje = kilometraje,
+                                                        horometro = horometro,
+                                                        huellas = huellas,
+                                                        estadoGeneral = estadoGeneral,
+                                                        novedad = novedad,
+                                                        nombreTecnico = nombreTecnico,
+                                                        onFinalizado = {
+                                                            guardandoHuella = false
+                                                            mensajeHuella =
+                                                                "Registro enviado correctamente."
+                                                            pantallaActual = "MENU"
+                                                        },
+                                                        onError = { mensaje ->
+                                                            guardandoHuella = false
+                                                            mensajeHuella = mensaje
+                                                        }
+                                                    )
+                                                }
+                                            },
+
+                                            onVolver = {
+                                                mensajeHuella = ""
+                                                pantallaActual = "MIS_BORRADORES_HUELLA"
+                                            }
+                                        )
+                                    }
+                                }
+
+                                "MIS_BORRADORES_HUELLA" -> {
+                                    MisBorradoresHuellaScreen(
+                                        borradores = borradoresHuella,
+                                        cargando = cargandoBorradoresHuella,
+                                        mensaje = mensajeBorradoresHuella,
+                                        onSeleccionarBorrador = { borrador ->
+                                            borradorHuellaSeleccionado = borrador
+                                            mensajeHuella = ""
+                                            pantallaActual = "EDITAR_BORRADOR_HUELLA"
+                                        },
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "TOMA_HUELLA" -> {
+                                    TomaHuellaScreen(
+                                        activos = activos,
+                                        guardando = guardandoHuella,
+                                        mensaje = mensajeHuella,
+
+                                        onGuardar = {
+                                                codigoActivo,
+                                                proyecto,
+                                                kilometraje,
+                                                horometro,
+                                                huellas,
+                                                estadoGeneral,
+                                                novedad,
+                                                nombreTecnico,
+                                                estadoRegistro ->
+
+                                            if (!guardandoHuella) {
+                                                guardandoHuella = true
+                                                mensajeHuella = if (estadoRegistro == "BORRADOR") {
+                                                    "Guardando toma de huella..."
+                                                } else {
+                                                    "Enviando toma de huella..."
+                                                }
+
+                                                VulcanizacionRepository.guardarTomaHuella(
+                                                    codigoActivo = codigoActivo,
+                                                    proyecto = proyecto,
+                                                    kilometraje = kilometraje,
+                                                    horometro = horometro,
+                                                    huellas = huellas,
+                                                    estadoGeneral = estadoGeneral,
+                                                    novedad = novedad,
+                                                    nombreTecnico = nombreTecnico,
+                                                    estadoRegistro = estadoRegistro,
+                                                    onFinalizado = { idRegistro ->
+                                                        guardandoHuella = false
+                                                        mensajeHuella = if (estadoRegistro == "BORRADOR") {
+                                                            "Toma de huella guardada correctamente. ID: $idRegistro"
+                                                        } else {
+                                                            "Toma de huella enviada correctamente. ID: $idRegistro"
+                                                        }
+                                                    },
+                                                    onError = { mensaje ->
+                                                        guardandoHuella = false
+                                                        mensajeHuella = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onVolver = {
+                                            mensajeHuella = ""
                                             pantallaActual = "MENU"
                                         }
                                     )
@@ -612,6 +910,179 @@ class MainActivity : ComponentActivity() {
                                                         pantallaActual = "NUEVO_MANTENIMIENTO"
                                                     }
                                                 }
+                                                "Toma general de huella" -> {
+                                                    mensajeHuella = ""
+
+                                                    if (activos.isEmpty()) {
+                                                        ImportadorActivos.cargarActivos(
+                                                            onFinalizado = { datos ->
+                                                                activos = datos.map { activo ->
+                                                                    ActivoResumen(
+                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
+                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
+                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
+                                                                        marca = activo["marca"]?.toString().orEmpty(),
+                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
+                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
+                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
+                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
+                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
+                                                                        status = activo["status"]?.toString().orEmpty()
+                                                                    )
+                                                                }.sortedBy { activo -> activo.codigo }
+
+                                                                pantallaActual = "TOMA_HUELLA"
+                                                            },
+                                                            onError = { mensaje ->
+                                                                mensajeHuella = mensaje
+                                                            }
+                                                        )
+                                                    } else {
+                                                        pantallaActual = "TOMA_HUELLA"
+                                                    }
+                                                }
+
+                                                "Revisión de huellas" -> {
+                                                    cargandoRevisionHuella = true
+                                                    mensajeRevisionHuella = ""
+                                                    registrosRevisionHuella = emptyList()
+
+                                                    VulcanizacionRepository.cargarRegistrosPendientesRevision(
+                                                        onFinalizado = { datos ->
+                                                            registrosRevisionHuella = datos.map { registro ->
+                                                                RegistroRevisionHuella(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    huellas = (1..12).map { posicion ->
+                                                                        (registro["P$posicion"] as? Number)?.toDouble()
+                                                                    },
+                                                                    estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
+                                                                    novedad = registro["novedad"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    uidUsuario = registro["uidUsuario"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                )
+                                                            }
+
+                                                            cargandoRevisionHuella = false
+                                                            pantallaActual = "REVISION_HUELLA"
+                                                        },
+                                                        onError = { mensaje ->
+                                                            cargandoRevisionHuella = false
+                                                            mensajeRevisionHuella = mensaje
+                                                            pantallaActual = "REVISION_HUELLA"
+                                                        }
+                                                    )
+                                                }
+
+                                                "Historial de huellas" -> {
+                                                    cargandoHistorialHuella = true
+                                                    mensajeHistorialHuella = ""
+                                                    historialHuella = emptyList()
+
+                                                    VulcanizacionRepository.cargarMiHistorial(
+                                                        onFinalizado = { datos ->
+                                                            historialHuella = datos.map { registro ->
+                                                                RegistroHistorialHuella(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    huellas = (1..12).map { posicion ->
+                                                                        (registro["P$posicion"] as? Number)?.toDouble()
+                                                                    },
+                                                                    estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
+                                                                    novedad = registro["novedad"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                )
+                                                            }
+
+                                                            cargandoHistorialHuella = false
+                                                            pantallaActual = "HISTORIAL_HUELLA"
+                                                        },
+                                                        onError = { mensaje ->
+                                                            cargandoHistorialHuella = false
+                                                            mensajeHistorialHuella = mensaje
+                                                            pantallaActual = "HISTORIAL_HUELLA"
+                                                        }
+                                                    )
+                                                }
+
+                                                "Borradores de huella" -> {
+                                                    cargandoBorradoresHuella = true
+                                                    mensajeBorradoresHuella = ""
+                                                    borradoresHuella = emptyList()
+
+                                                    fun cargarBorradores() {
+                                                        VulcanizacionRepository.cargarMisBorradores(
+                                                            onFinalizado = { datos ->
+                                                                borradoresHuella = datos.map { registro ->
+                                                                    BorradorHuella(
+                                                                        id = registro["id"]?.toString().orEmpty(),
+                                                                        codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                        proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                        kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                        horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                        huellas = (1..12).map { posicion ->
+                                                                            (registro["P$posicion"] as? Number)?.toDouble()
+                                                                        },
+                                                                        estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
+                                                                        novedad = registro["novedad"]?.toString().orEmpty(),
+                                                                        nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                        estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                    )
+                                                                }
+
+                                                                cargandoBorradoresHuella = false
+                                                                pantallaActual = "MIS_BORRADORES_HUELLA"
+                                                            },
+                                                            onError = { mensaje ->
+                                                                cargandoBorradoresHuella = false
+                                                                mensajeBorradoresHuella = mensaje
+                                                                pantallaActual = "MIS_BORRADORES_HUELLA"
+                                                            }
+                                                        )
+                                                    }
+
+                                                    if (activos.isEmpty()) {
+                                                        ImportadorActivos.cargarActivos(
+                                                            onFinalizado = { datos ->
+                                                                activos = datos.map { activo ->
+                                                                    ActivoResumen(
+                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
+                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
+                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
+                                                                        marca = activo["marca"]?.toString().orEmpty(),
+                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
+                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
+                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
+                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
+                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
+                                                                        status = activo["status"]?.toString().orEmpty()
+                                                                    )
+                                                                }.sortedBy { activo ->
+                                                                    activo.codigo
+                                                                }
+
+                                                                cargarBorradores()
+                                                            },
+                                                            onError = { mensaje ->
+                                                                cargandoBorradoresHuella = false
+                                                                mensajeBorradoresHuella = mensaje
+                                                                pantallaActual = "MIS_BORRADORES_HUELLA"
+                                                            }
+                                                        )
+                                                    } else {
+                                                        cargarBorradores()
+                                                    }
+                                                }
+
                                                 "Mis borradores" -> {
                                                     cargandoBorradores = true
                                                     mensajeBorradores = ""

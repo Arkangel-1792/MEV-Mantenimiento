@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.luis.mevmantenimiento" />
+                  <option name="mobileSdkAppId" value="1:213852784130:android:732ecf1366b55468fec91b" />
+                  <option name="projectId" value="mev-mantenimiento" />
+                  <option name="projectNumber" value="213852784130" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
