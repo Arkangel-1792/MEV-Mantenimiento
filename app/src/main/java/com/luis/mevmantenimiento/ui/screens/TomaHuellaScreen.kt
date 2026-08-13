@@ -116,8 +116,11 @@ fun TomaHuellaScreen(
             return
         }
 
+        val cantidadActual =
+            obtenerCantidadPosiciones(activo)
+
         val huellasRegistro = List(12) { indice ->
-            if (indice < cantidadPosiciones) {
+            if (indice < cantidadActual) {
                 huellas[indice]
             } else {
                 ""
@@ -139,13 +142,12 @@ fun TomaHuellaScreen(
         )
     }
 
-    fun ejecutarComandoVoz(
-        texto: String
-    ) {
-        when (
-            val comando =
-                VoiceCommandParser.interpretar(texto)
-        ) {
+    fun aplicarComandoVoz(
+        comando: VoiceCommand
+    ): String {
+
+        return when (comando) {
+
             is VoiceCommand.SeleccionarActivo -> {
 
                 val activoEncontrado =
@@ -157,111 +159,126 @@ fun TomaHuellaScreen(
                     }
 
                 if (activoEncontrado == null) {
-                    mensajeVoz =
-                        "No se encontró el activo ${comando.codigo}."
-                    return
-                }
+                    "No se encontró el activo ${comando.codigo}."
+                } else {
+                    activoSeleccionado = activoEncontrado
 
-                activoSeleccionado = activoEncontrado
+                    kilometraje =
+                        activoEncontrado.kilometraje
+                            ?.toString()
+                            .orEmpty()
 
-                kilometraje =
-                    activoEncontrado.kilometraje
-                        ?.toString()
-                        .orEmpty()
+                    horometro =
+                        activoEncontrado.horometro
+                            ?.toString()
+                            .orEmpty()
 
-                horometro =
-                    activoEncontrado.horometro
-                        ?.toString()
-                        .orEmpty()
+                    huellas.indices.forEach { indice ->
+                        huellas[indice] = ""
+                    }
 
-                huellas.indices.forEach { indice ->
-                    huellas[indice] = ""
-                }
-
-                mensajeVoz =
                     "Activo ${activoEncontrado.codigo} seleccionado."
+                }
             }
 
             is VoiceCommand.ActualizarPosicion -> {
 
-                if (activoSeleccionado == null) {
-                    mensajeVoz =
-                        "Primero debes seleccionar un activo."
-                    return
-                }
+                val activoActual = activoSeleccionado
 
-                val indice =
-                    comando.posicion - 1
+                if (activoActual == null) {
+                    "Primero debes seleccionar un activo."
+                } else {
+                    val cantidadActual =
+                        obtenerCantidadPosiciones(
+                            activoActual
+                        )
 
-                if (
-                    indice < 0 ||
-                    indice >= cantidadPosiciones
-                ) {
-                    mensajeVoz =
+                    val indice =
+                        comando.posicion - 1
+
+                    if (
+                        indice < 0 ||
+                        indice >= cantidadActual
+                    ) {
                         "La posición ${comando.posicion} no corresponde a este activo."
-                    return
+                    } else {
+                        huellas[indice] =
+                            comando.valor
+
+                        "P${comando.posicion} = ${comando.valor} mm."
+                    }
                 }
-
-                huellas[indice] = comando.valor
-
-                mensajeVoz =
-                    "P${comando.posicion} registrada con ${comando.valor} milímetros."
             }
 
             is VoiceCommand.ActualizarProyecto -> {
                 proyecto = comando.valor
-
-                mensajeVoz =
-                    "Proyecto actualizado: ${comando.valor}."
+                "Proyecto: ${comando.valor}."
             }
 
             is VoiceCommand.ActualizarKilometraje -> {
                 kilometraje = comando.valor
-
-                mensajeVoz =
-                    "Kilometraje actualizado: ${comando.valor}."
+                "Kilometraje: ${comando.valor}."
             }
 
             is VoiceCommand.ActualizarHorometro -> {
                 horometro = comando.valor
-
-                mensajeVoz =
-                    "Horómetro actualizado: ${comando.valor}."
+                "Horómetro: ${comando.valor}."
             }
 
             is VoiceCommand.ActualizarEstadoGeneral -> {
                 estadoGeneral = comando.valor
-
-                mensajeVoz =
-                    "Estado general actualizado."
+                "Estado general actualizado."
             }
 
             is VoiceCommand.ActualizarNovedad -> {
                 novedad = comando.valor
+                "Novedad actualizada."
+            }
 
-                mensajeVoz =
-                    "Novedad actualizada."
+            is VoiceCommand.ActualizarTecnico -> {
+                nombreTecnico = comando.valor
+                "Técnico: ${comando.valor}."
             }
 
             VoiceCommand.GuardarBorrador -> {
                 guardarDesdeVoz("BORRADOR")
+                "Orden de guardar borrador ejecutada."
             }
 
             VoiceCommand.EnviarRegistro -> {
                 if (nombreTecnico.isBlank()) {
-                    mensajeVoz =
-                        "Ingresa el nombre del técnico antes de enviar."
-                    return
+                    "Ingresa el nombre del técnico antes de enviar."
+                } else {
+                    guardarDesdeVoz("ENVIADO")
+                    "Orden de envío ejecutada."
                 }
-
-                guardarDesdeVoz("ENVIADO")
             }
 
             is VoiceCommand.Desconocido -> {
-                mensajeVoz =
-                    "No se entendió el comando. Inténtalo nuevamente."
+                "No se entendió: ${comando.textoOriginal}"
+            }
+
+            else -> {
+                "Este comando de voz no pertenece al formulario de toma de huella."
             }
         }
+    }
+
+    fun ejecutarComandoVoz(
+        texto: String
+    ) {
+        val comandos =
+            VoiceCommandParser.interpretarVarios(texto)
+
+        val respuestas =
+            comandos.map { comando ->
+                aplicarComandoVoz(comando)
+            }
+
+        mensajeVoz =
+            respuestas.joinToString(
+                separator = "\n"
+            )
     }
 
     Scaffold(
