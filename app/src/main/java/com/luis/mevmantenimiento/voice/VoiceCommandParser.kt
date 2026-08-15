@@ -29,15 +29,22 @@ object VoiceCommandParser {
             return it
         }
 
+        // Toma de huella: "posición 1 8 milímetros"
         interpretarPosicion(texto)?.let {
             return it
         }
+
+        // Intervención de llanta: "posición 3"
+        interpretarPosicionLlanta(texto)?.let {
+            return it
+        }
+
+        // ===== CAMPOS GENERALES =====
 
         extraerValorDespuesDe(
             texto,
             listOf("proyecto")
         )?.let { valor ->
-
             return VoiceCommand.ActualizarProyecto(
                 valor = normalizarProyecto(valor)
             )
@@ -51,7 +58,6 @@ object VoiceCommandParser {
                 "kilometro"
             )
         )?.let { valor ->
-
             return VoiceCommand.ActualizarKilometraje(
                 valor = convertirKilometraje(valor)
             )
@@ -68,11 +74,147 @@ object VoiceCommandParser {
                 "horas"
             )
         )?.let { valor ->
-
             return VoiceCommand.ActualizarHorometro(
                 valor = convertirTextoNumerico(valor)
             )
         }
+
+        // ===== MANTENIMIENTO =====
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "tipo de servicio",
+                "servicio"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarTipoServicio(
+                valor = normalizarTipoServicio(valor)
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "accion ejecutada",
+                "accion realizada",
+                "trabajo realizado",
+                "accion"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarAccionEjecutada(
+                valor = valor.trim()
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "orden de trabajo",
+                "numero de orden",
+                "orden"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarOrdenTrabajo(
+                valor = limpiarIdentificador(valor)
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "numero de pedido",
+                "pedido"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarNumeroPedido(
+                valor = limpiarIdentificador(valor)
+            )
+        }
+
+        // ===== INTERVENCIÓN DE LLANTA =====
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "tipo de intervencion",
+                "intervencion"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarTipoIntervencion(
+                valor = normalizarTipoIntervencion(valor)
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "huella de llanta",
+                "profundidad de huella",
+                "profundidad",
+                "huella"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarHuellaLlanta(
+                valor = convertirMedidaMilimetros(valor)
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "marca de llanta",
+                "marca llanta",
+                "marca"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarMarcaLlanta(
+                valor = normalizarTextoLibre(valor)
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "medida de llanta",
+                "medida llanta",
+                "medida"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarMedidaLlanta(
+                valor = valor.trim().uppercase()
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "serie de llanta",
+                "serie llanta",
+                "numero de serie",
+                "serie"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarSerieLlanta(
+                valor = valor
+                    .replace(" ", "")
+                    .uppercase()
+            )
+        }
+
+        extraerValorDespuesDe(
+            texto,
+            listOf(
+                "motivo de intervencion",
+                "motivo"
+            )
+        )?.let { valor ->
+            return VoiceCommand.ActualizarMotivoIntervencion(
+                valor = valor.trim()
+            )
+        }
+
+        // ===== CAMPOS GENERALES DE CIERRE =====
 
         extraerValorDespuesDe(
             texto,
@@ -81,7 +223,6 @@ object VoiceCommandParser {
                 "estado"
             )
         )?.let { valor ->
-
             return VoiceCommand.ActualizarEstadoGeneral(
                 valor = valor
             )
@@ -94,7 +235,6 @@ object VoiceCommandParser {
                 "observacion"
             )
         )?.let { valor ->
-
             return VoiceCommand.ActualizarNovedad(
                 valor = valor
             )
@@ -110,7 +250,6 @@ object VoiceCommandParser {
                 "mecanico"
             )
         )?.let { valor ->
-
             return VoiceCommand.ActualizarTecnico(
                 valor = normalizarNombre(valor)
             )
@@ -143,7 +282,7 @@ object VoiceCommandParser {
          * posicion 2 7 punto 5 milimetros tecnico Luis Barragan"
          */
         val patronInicio = Regex(
-            """\b(?:seleccionar\s+activo|activo|volqueta|camioneta|equipo|proyecto|kilometraje|kilometros?|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|estado\s+general|novedad|observacion|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+\d{1,2}|p\s*\d{1,2}|guardar\s+borrador|enviar\s+registro)\b"""
+            """\b(?:seleccionar\s+activo|activo|volqueta|camioneta|equipo|proyecto|kilometraje|kilometros?|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|tipo\s+de\s+servicio|servicio|accion\s+ejecutada|accion\s+realizada|trabajo\s+realizado|accion|orden\s+de\s+trabajo|numero\s+de\s+orden|orden|numero\s+de\s+pedido|pedido|tipo\s+de\s+intervencion|intervencion|huella\s+de\s+llanta|profundidad\s+de\s+huella|profundidad|huella|marca\s+de\s+llanta|marca\s+llanta|marca|medida\s+de\s+llanta|medida\s+llanta|medida|serie\s+de\s+llanta|serie\s+llanta|numero\s+de\s+serie|serie|motivo\s+de\s+intervencion|motivo|estado\s+general|estado|novedad|observacion|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+\d{1,2}|p\s*\d{1,2}|guardar\s+borrador|enviar\s+registro)\b"""
         )
 
         val inicios = patronInicio
@@ -303,6 +442,31 @@ object VoiceCommandParser {
     }
 
 
+
+    private fun interpretarPosicionLlanta(
+        texto: String
+    ): VoiceCommand.ActualizarPosicionLlanta? {
+
+        val coincidencia = Regex(
+            """^(?:posicion|p)\s*(\d{1,2})\s*$"""
+        ).find(texto)
+            ?: return null
+
+        val posicion =
+            coincidencia
+                .groupValues[1]
+                .toIntOrNull()
+                ?: return null
+
+        if (posicion !in 1..12) {
+            return null
+        }
+
+        return VoiceCommand.ActualizarPosicionLlanta(
+            posicion = posicion
+        )
+    }
+
     private fun construirCodigoVolqueta(
         numero: Int
     ): String {
@@ -363,6 +527,103 @@ object VoiceCommandParser {
         }
 
         return null
+    }
+
+
+    private fun normalizarTipoServicio(
+        valor: String
+    ): String {
+
+        val limpio = valor.lowercase().trim()
+
+        return when {
+            limpio.contains("preventivo") ||
+                    limpio.contains("preventiva") ->
+                "PREVENTIVO"
+
+            limpio.contains("correctivo") ||
+                    limpio.contains("correctiva") ->
+                "CORRECTIVO"
+
+            else ->
+                valor.trim().uppercase()
+        }
+    }
+
+    private fun normalizarTipoIntervencion(
+        valor: String
+    ): String {
+
+        val limpio = valor.lowercase().trim()
+
+        return when {
+            limpio.contains("rotacion") ||
+                    limpio.contains("rotar") ->
+                "ROTACIÓN"
+
+            limpio.contains("reparacion") ||
+                    limpio.contains("reparar") ->
+                "REPARACIÓN"
+
+            limpio.contains("montaje") ||
+                    limpio.contains("montar") ->
+                "MONTAJE"
+
+            limpio.contains("desmontaje") ||
+                    limpio.contains("desmontar") ->
+                "DESMONTAJE"
+
+            limpio.contains("baja") ->
+                "BAJA"
+
+            limpio.contains("cambio") ||
+                    limpio.contains("cambiar") ->
+                "CAMBIO"
+
+            else ->
+                valor.trim().uppercase()
+        }
+    }
+
+    private fun convertirMedidaMilimetros(
+        valor: String
+    ): String {
+
+        val limpio = valor
+            .replace("milimetros", "")
+            .replace("milimetro", "")
+            .replace("mm", "")
+            .trim()
+
+        return convertirTextoNumerico(limpio)
+    }
+
+    private fun limpiarIdentificador(
+        valor: String
+    ): String {
+
+        return valor
+            .trim()
+            .replace(
+                Regex("""\s+"""),
+                ""
+            )
+            .uppercase()
+    }
+
+    private fun normalizarTextoLibre(
+        valor: String
+    ): String {
+
+        return valor
+            .trim()
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { palabra ->
+                palabra.replaceFirstChar { caracter ->
+                    caracter.uppercase()
+                }
+            }
     }
 
     private fun normalizarProyecto(
