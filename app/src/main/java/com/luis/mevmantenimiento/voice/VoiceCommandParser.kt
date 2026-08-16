@@ -8,19 +8,20 @@ object VoiceCommandParser {
         textoOriginal: String
     ): VoiceCommand {
 
-        val texto =
-            normalizarTexto(textoOriginal)
+        val texto = normalizarTexto(textoOriginal)
 
         if (
             texto.contains("guardar borrador") ||
-            texto == "guardar"
+            texto == "guardar" ||
+            texto == "guardar registro"
         ) {
             return VoiceCommand.GuardarBorrador
         }
 
         if (
             texto.contains("enviar registro") ||
-            texto == "enviar"
+            texto == "enviar" ||
+            texto == "enviar borrador"
         ) {
             return VoiceCommand.EnviarRegistro
         }
@@ -29,21 +30,19 @@ object VoiceCommandParser {
             return it
         }
 
-        // Toma de huella: "posición 1 8 milímetros"
-        interpretarPosicion(texto)?.let {
+        // Toma general de huella: "posición 10 7.5 milímetros"
+        interpretarPosicionConHuella(texto)?.let {
             return it
         }
 
-        // Intervención de llanta: "posición 3"
+        // Intervención de llanta: "posición 10"
         interpretarPosicionLlanta(texto)?.let {
             return it
         }
 
-        // ===== CAMPOS GENERALES =====
-
         extraerValorDespuesDe(
             texto,
-            listOf("proyecto")
+            listOf("proyecto", "obra", "campamento")
         )?.let { valor ->
             return VoiceCommand.ActualizarProyecto(
                 valor = normalizarProyecto(valor)
@@ -55,7 +54,8 @@ object VoiceCommandParser {
             listOf(
                 "kilometraje",
                 "kilometros",
-                "kilometro"
+                "kilometro",
+                "km"
             )
         )?.let { valor ->
             return VoiceCommand.ActualizarKilometraje(
@@ -71,6 +71,7 @@ object VoiceCommandParser {
                 "odometro",
                 "contador de horas",
                 "horas del equipo",
+                "hora equipo",
                 "horas"
             )
         )?.let { valor ->
@@ -78,8 +79,6 @@ object VoiceCommandParser {
                 valor = convertirTextoNumerico(valor)
             )
         }
-
-        // ===== MANTENIMIENTO =====
 
         extraerValorDespuesDe(
             texto,
@@ -99,6 +98,8 @@ object VoiceCommandParser {
                 "accion ejecutada",
                 "accion realizada",
                 "trabajo realizado",
+                "trabajo ejecutado",
+                "actividad realizada",
                 "accion"
             )
         )?.let { valor ->
@@ -124,6 +125,7 @@ object VoiceCommandParser {
             texto,
             listOf(
                 "numero de pedido",
+                "numero pedido",
                 "pedido"
             )
         )?.let { valor ->
@@ -131,8 +133,6 @@ object VoiceCommandParser {
                 valor = limpiarIdentificador(valor)
             )
         }
-
-        // ===== INTERVENCIÓN DE LLANTA =====
 
         extraerValorDespuesDe(
             texto,
@@ -178,11 +178,13 @@ object VoiceCommandParser {
             listOf(
                 "medida de llanta",
                 "medida llanta",
+                "dimension de llanta",
+                "dimension",
                 "medida"
             )
         )?.let { valor ->
             return VoiceCommand.ActualizarMedidaLlanta(
-                valor = valor.trim().uppercase()
+                valor = normalizarMedidaLlanta(valor)
             )
         }
 
@@ -196,9 +198,7 @@ object VoiceCommandParser {
             )
         )?.let { valor ->
             return VoiceCommand.ActualizarSerieLlanta(
-                valor = valor
-                    .replace(" ", "")
-                    .uppercase()
+                valor = limpiarIdentificador(valor)
             )
         }
 
@@ -214,17 +214,16 @@ object VoiceCommandParser {
             )
         }
 
-        // ===== CAMPOS GENERALES DE CIERRE =====
-
         extraerValorDespuesDe(
             texto,
             listOf(
                 "estado general",
+                "condicion general",
                 "estado"
             )
         )?.let { valor ->
             return VoiceCommand.ActualizarEstadoGeneral(
-                valor = valor
+                valor = valor.trim()
             )
         }
 
@@ -232,11 +231,12 @@ object VoiceCommandParser {
             texto,
             listOf(
                 "novedad",
+                "observaciones",
                 "observacion"
             )
         )?.let { valor ->
             return VoiceCommand.ActualizarNovedad(
-                valor = valor
+                valor = valor.trim()
             )
         }
 
@@ -260,7 +260,6 @@ object VoiceCommandParser {
         )
     }
 
-
     fun interpretarVarios(
         textoOriginal: String
     ): List<VoiceCommand> {
@@ -273,16 +272,8 @@ object VoiceCommandParser {
             )
         }
 
-        /*
-         * Detecta dónde comienza cada dato/comando.
-         * Esto permite decir de corrido, por ejemplo:
-         *
-         * "Volqueta 99 proyecto Villonaco kilometraje 125 mil
-         * horometro 8500 posicion 1 8 milimetros
-         * posicion 2 7 punto 5 milimetros tecnico Luis Barragan"
-         */
         val patronInicio = Regex(
-            """\b(?:seleccionar\s+activo|activo|volqueta|camioneta|equipo|proyecto|kilometraje|kilometros?|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|tipo\s+de\s+servicio|servicio|accion\s+ejecutada|accion\s+realizada|trabajo\s+realizado|accion|orden\s+de\s+trabajo|numero\s+de\s+orden|orden|numero\s+de\s+pedido|pedido|tipo\s+de\s+intervencion|intervencion|huella\s+de\s+llanta|profundidad\s+de\s+huella|profundidad|huella|marca\s+de\s+llanta|marca\s+llanta|marca|medida\s+de\s+llanta|medida\s+llanta|medida|serie\s+de\s+llanta|serie\s+llanta|numero\s+de\s+serie|serie|motivo\s+de\s+intervencion|motivo|estado\s+general|estado|novedad|observacion|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|p\s*(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|guardar\s+borrador|enviar\s+registro)\b"""
+            """\b(?:seleccionar\s+activo|activo|volqueta|camioneta|equipo|proyecto|obra|campamento|kilometraje|kilometros?|km|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|hora\s+equipo|tipo\s+de\s+servicio|servicio|accion\s+ejecutada|accion\s+realizada|trabajo\s+realizado|trabajo\s+ejecutado|actividad\s+realizada|accion|orden\s+de\s+trabajo|numero\s+de\s+orden|orden|numero\s+de\s+pedido|numero\s+pedido|pedido|tipo\s+de\s+intervencion|intervencion|huella\s+de\s+llanta|profundidad\s+de\s+huella|profundidad|huella|marca\s+de\s+llanta|marca\s+llanta|marca|medida\s+de\s+llanta|medida\s+llanta|dimension\s+de\s+llanta|dimension|medida|serie\s+de\s+llanta|serie\s+llanta|numero\s+de\s+serie|serie|motivo\s+de\s+intervencion|motivo|estado\s+general|condicion\s+general|estado|novedad|observaciones?|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|p\s*(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|guardar\s+borrador|guardar\s+registro|enviar\s+registro|enviar\s+borrador)\b"""
         )
 
         val inicios = patronInicio
@@ -292,17 +283,20 @@ object VoiceCommandParser {
             .toList()
 
         if (inicios.isEmpty()) {
-            return listOf(interpretar(textoOriginal))
+            return listOf(
+                interpretar(textoOriginal)
+            )
         }
 
         val segmentos = mutableListOf<String>()
 
         inicios.forEachIndexed { indice, inicio ->
-            val fin = if (indice < inicios.lastIndex) {
-                inicios[indice + 1]
-            } else {
-                texto.length
-            }
+            val fin =
+                if (indice < inicios.lastIndex) {
+                    inicios[indice + 1]
+                } else {
+                    texto.length
+                }
 
             val segmento = texto
                 .substring(inicio, fin)
@@ -344,57 +338,73 @@ object VoiceCommandParser {
             return null
         }
 
-        val codigoDirecto =
-            Regex(
-                """vvolq\s*0*(\d+)"""
-            ).find(texto)
+        val codigoVolqueta = Regex(
+            """vvolq\s*0*(\d+)"""
+        ).find(texto)
 
-        if (codigoDirecto != null) {
-
-            val numero =
-                codigoDirecto
-                    .groupValues[1]
-                    .toIntOrNull()
-                    ?: return null
+        if (codigoVolqueta != null) {
+            val numero = codigoVolqueta
+                .groupValues[1]
+                .toIntOrNull()
+                ?: return null
 
             return VoiceCommand.SeleccionarActivo(
-                codigo =
-                    construirCodigoVolqueta(numero)
+                codigo = construirCodigoVolqueta(numero)
+            )
+        }
+
+        val codigoCamioneta = Regex(
+            """vcam\s*0*(\d+)"""
+        ).find(texto)
+
+        if (codigoCamioneta != null) {
+            val numero = codigoCamioneta
+                .groupValues[1]
+                .toIntOrNull()
+                ?: return null
+
+            return VoiceCommand.SeleccionarActivo(
+                codigo = construirCodigoCamioneta(numero)
             )
         }
 
         val numero =
             extraerPrimerNumero(texto)
-                ?: convertirPalabraNumero(
-                    texto.substringAfterLast(" ")
+                ?: convertirPalabrasAEntero(
+                    texto
+                        .substringAfter("volqueta", "")
+                        .ifBlank {
+                            texto.substringAfter("camioneta", "")
+                        }
+                        .ifBlank {
+                            texto.substringAfter("activo", "")
+                        }
+                        .ifBlank {
+                            texto.substringAfter("equipo", "")
+                        }
+                        .trim()
                 )
                 ?: return null
 
         return when {
-
-            texto.contains("volqueta") -> {
+            texto.contains("volqueta") ->
                 VoiceCommand.SeleccionarActivo(
-                    codigo =
-                        construirCodigoVolqueta(numero)
+                    codigo = construirCodigoVolqueta(numero)
                 )
-            }
 
-            texto.contains("camioneta") -> {
+            texto.contains("camioneta") ->
                 VoiceCommand.SeleccionarActivo(
-                    codigo =
-                        construirCodigoCamioneta(numero)
+                    codigo = construirCodigoCamioneta(numero)
                 )
-            }
 
-            else -> {
+            else ->
                 VoiceCommand.SeleccionarActivo(
                     codigo = numero.toString()
                 )
-            }
         }
     }
 
-    private fun interpretarPosicion(
+    private fun interpretarPosicionConHuella(
         texto: String
     ): VoiceCommand.ActualizarPosicion? {
 
@@ -407,45 +417,38 @@ object VoiceCommandParser {
             return null
         }
 
-        val coincidencia =
-            Regex(
-                """(?:posicion|p)\s*(\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:valor|es|en)?\s*(.+)"""
-            ).find(texto)
-                ?: return null
+        val coincidencia = Regex(
+            """(?:posicion|p)\s*(\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:valor|es|en)?\s*(.+)"""
+        ).find(texto)
+            ?: return null
 
-        val posicion =
-            convertirPalabrasAEntero(
-                coincidencia.groupValues[1]
-            ) ?: return null
+        val posicion = convertirPalabrasAEntero(
+            coincidencia.groupValues[1]
+        ) ?: return null
 
         if (posicion !in 1..12) {
             return null
         }
 
-        var valorTexto =
-            coincidencia
-                .groupValues[2]
-                .trim()
-
-        valorTexto = valorTexto
-            .replace("milimetros", "")
-            .replace("milimetro", "")
-            .replace("mm", "")
-            .trim()
+        val valorTexto = limpiarUnidadMilimetros(
+            coincidencia.groupValues[2]
+        )
 
         if (valorTexto.isBlank()) {
             return null
         }
 
+        val valor = convertirTextoNumerico(valorTexto)
+
+        if (valor.toDoubleOrNull() == null) {
+            return null
+        }
+
         return VoiceCommand.ActualizarPosicion(
             posicion = posicion,
-            valor = convertirTextoNumerico(
-                valorTexto
-            )
+            valor = valor
         )
     }
-
-
 
     private fun interpretarPosicionLlanta(
         texto: String
@@ -456,10 +459,9 @@ object VoiceCommandParser {
         ).find(texto)
             ?: return null
 
-        val posicion =
-            convertirPalabrasAEntero(
-                coincidencia.groupValues[1]
-            ) ?: return null
+        val posicion = convertirPalabrasAEntero(
+            coincidencia.groupValues[1]
+        ) ?: return null
 
         if (posicion !in 1..12) {
             return null
@@ -473,7 +475,6 @@ object VoiceCommandParser {
     private fun construirCodigoVolqueta(
         numero: Int
     ): String {
-
         return "VVOLQ" +
                 numero
                     .toString()
@@ -483,7 +484,6 @@ object VoiceCommandParser {
     private fun construirCodigoCamioneta(
         numero: Int
     ): String {
-
         return "VCAM" +
                 numero
                     .toString()
@@ -493,7 +493,6 @@ object VoiceCommandParser {
     private fun extraerPrimerNumero(
         texto: String
     ): Int? {
-
         return Regex("""\d+""")
             .find(texto)
             ?.value
@@ -505,38 +504,35 @@ object VoiceCommandParser {
         palabrasClave: List<String>
     ): String? {
 
-        palabrasClave.forEach { palabra ->
+        palabrasClave
+            .sortedByDescending { it.length }
+            .forEach { palabra ->
 
-            val indice =
-                texto.indexOf(palabra)
+                val coincidencia = Regex(
+                    """(?:^|\b)${Regex.escape(palabra)}\b"""
+                ).find(texto)
 
-            if (indice >= 0) {
-
-                val valor =
-                    texto
-                        .substring(
-                            indice + palabra.length
-                        )
+                if (coincidencia != null) {
+                    val valor = texto
+                        .substring(coincidencia.range.last + 1)
                         .trim()
                         .removePrefix("es")
                         .trim()
                         .removePrefix("valor")
                         .trim()
 
-                if (valor.isNotBlank()) {
-                    return valor
+                    if (valor.isNotBlank()) {
+                        return valor
+                    }
                 }
             }
-        }
 
         return null
     }
 
-
     private fun normalizarTipoServicio(
         valor: String
     ): String {
-
         val limpio = valor.lowercase().trim()
 
         return when {
@@ -556,7 +552,6 @@ object VoiceCommandParser {
     private fun normalizarTipoIntervencion(
         valor: String
     ): String {
-
         val limpio = valor.lowercase().trim()
 
         return when {
@@ -565,22 +560,25 @@ object VoiceCommandParser {
                 "ROTACIÓN"
 
             limpio.contains("reparacion") ||
-                    limpio.contains("reparar") ->
+                    limpio.contains("reparar") ||
+                    limpio.contains("parche") ->
                 "REPARACIÓN"
-
-            limpio.contains("montaje") ||
-                    limpio.contains("montar") ->
-                "MONTAJE"
 
             limpio.contains("desmontaje") ||
                     limpio.contains("desmontar") ->
                 "DESMONTAJE"
 
-            limpio.contains("baja") ->
+            limpio.contains("montaje") ||
+                    limpio.contains("montar") ->
+                "MONTAJE"
+
+            limpio.contains("baja") ||
+                    limpio.contains("dar de baja") ->
                 "BAJA"
 
             limpio.contains("cambio") ||
-                    limpio.contains("cambiar") ->
+                    limpio.contains("cambiar") ||
+                    limpio.contains("reemplazo") ->
                 "CAMBIO"
 
             else ->
@@ -591,20 +589,30 @@ object VoiceCommandParser {
     private fun convertirMedidaMilimetros(
         valor: String
     ): String {
+        return convertirTextoNumerico(
+            limpiarUnidadMilimetros(valor)
+        )
+    }
 
-        val limpio = valor
+    private fun limpiarUnidadMilimetros(
+        valor: String
+    ): String {
+        return valor
+            .lowercase()
             .replace("milimetros", "")
             .replace("milimetro", "")
-            .replace("mm", "")
+            .replace("milímetros", "")
+            .replace("milímetro", "")
+            .replace(
+                Regex("""\bmm\b"""),
+                ""
+            )
             .trim()
-
-        return convertirTextoNumerico(limpio)
     }
 
     private fun limpiarIdentificador(
         valor: String
     ): String {
-
         return valor
             .trim()
             .replace(
@@ -617,7 +625,6 @@ object VoiceCommandParser {
     private fun normalizarTextoLibre(
         valor: String
     ): String {
-
         return valor
             .trim()
             .split(" ")
@@ -629,27 +636,35 @@ object VoiceCommandParser {
             }
     }
 
+    private fun normalizarMedidaLlanta(
+        valor: String
+    ): String {
+        return valor
+            .trim()
+            .uppercase()
+            .replace(" POR ", "X")
+            .replace(
+                Regex("""\s+R\s+"""),
+                "R"
+            )
+            .replace(
+                Regex("""\s+"""),
+                " "
+            )
+    }
+
     private fun normalizarProyecto(
         valor: String
     ): String {
-
-        val proyecto =
-            valor
-                .trim()
-                .lowercase()
+        val proyecto = valor
+            .trim()
+            .lowercase()
 
         return when {
-
-            proyecto.contains("billonaco") ->
-                "Villonaco"
-
-            proyecto.contains("villonaco") ->
-                "Villonaco"
-
-            proyecto.contains("viyonaco") ->
-                "Villonaco"
-
-            proyecto.contains("biyonaco") ->
+            proyecto.contains("billonaco") ||
+                    proyecto.contains("villonaco") ||
+                    proyecto.contains("viyonaco") ||
+                    proyecto.contains("biyonaco") ->
                 "Villonaco"
 
             else ->
@@ -665,67 +680,62 @@ object VoiceCommandParser {
         texto: String
     ): String {
 
-        val contieneMil =
-            texto
-                .lowercase()
-                .contains("mil")
+        val limpio = texto
+            .lowercase()
+            .replace("kilometros", "")
+            .replace("kilometro", "")
+            .replace(
+                Regex("""\bkm\b"""),
+                ""
+            )
+            .trim()
 
-        val valorConvertido =
-            convertirTextoNumerico(texto)
+        val valorConvertido = convertirTextoNumerico(
+            limpio
+        )
 
-        val numero =
-            valorConvertido
-                .toDoubleOrNull()
-                ?: return valorConvertido
+        val numero = valorConvertido
+            .toDoubleOrNull()
+            ?: return valorConvertido
 
-        val kilometraje =
-            if (
-                contieneMil &&
-                numero in 1.0..999.0
-            ) {
-                numero * 1000
-            } else {
-                numero
-            }
-
-        return formatearNumero(kilometraje)
+        /*
+         * No inferimos "mil" si el usuario no lo dijo.
+         * Esto evita convertir accidentalmente 125 km en 125000 km.
+         */
+        return formatearNumero(numero)
     }
 
     private fun convertirTextoNumerico(
         texto: String
     ): String {
 
-        val limpio =
-            texto
-                .lowercase()
-                .replace(",", ".")
-                .replace("coma", " punto ")
-                .replace("con", " punto ")
-                .replace(
-                    Regex(
-                        """(\d{1,3})\.\s*(\d{3})(?!\d)"""
-                    ),
-                    "$1$2"
-                )
-                .replace(
-                    Regex(
-                        """(\d{1,3})\s+(\d{3})(?!\d)"""
-                    ),
-                    "$1$2"
-                )
-                .trim()
+        val limpio = texto
+            .lowercase()
+            .replace(",", ".")
+            .replace("coma", " punto ")
+            .replace("con", " punto ")
+            .replace(
+                Regex("""(\d{1,3})\.\s*(\d{3})(?!\d)"""),
+                "$1$2"
+            )
+            .replace(
+                Regex("""(\d{1,3})\s+(\d{3})(?!\d)"""),
+                "$1$2"
+            )
+            .replace(
+                Regex("""\s+"""),
+                " "
+            )
+            .trim()
 
-        val numeroConMil =
-            Regex(
-                """(\d+(?:\.\d+)?)\s*mil"""
-            ).find(limpio)
+        val numeroConMil = Regex(
+            """(\d+(?:\.\d+)?)\s*mil"""
+        ).find(limpio)
 
         if (numeroConMil != null) {
-
-            val numeroBase =
-                numeroConMil
-                    .groupValues[1]
-                    .toDoubleOrNull()
+            val numeroBase = numeroConMil
+                .groupValues[1]
+                .toDoubleOrNull()
 
             if (numeroBase != null) {
                 return formatearNumero(
@@ -737,38 +747,81 @@ object VoiceCommandParser {
         limpio
             .toDoubleOrNull()
             ?.let { numero ->
-
                 return formatearNumero(numero)
             }
 
-        val partes =
-            limpio.split("punto")
+        val partes = limpio.split("punto")
 
-        val entero =
-            convertirPalabrasAEntero(
-                partes
-                    .first()
-                    .trim()
-            )
-                ?: return limpio
+        val parteEnteraTexto = partes
+            .first()
+            .trim()
+
+        val entero = convertirPalabrasAEntero(
+            parteEnteraTexto
+        ) ?: return limpio
 
         if (partes.size == 1) {
             return entero.toString()
         }
 
-        val parteDecimalTexto =
-            partes
-                .drop(1)
-                .joinToString("")
-                .trim()
+        val decimalTexto = partes
+            .drop(1)
+            .joinToString(" ")
+            .trim()
 
-        val parteDecimal =
-            convertirPalabrasAEntero(
-                parteDecimalTexto
-            )
-                ?: return entero.toString()
+        val decimal = convertirParteDecimal(
+            decimalTexto
+        ) ?: return entero.toString()
 
-        return "$entero.$parteDecimal"
+        return "$entero.$decimal"
+    }
+
+    private fun convertirParteDecimal(
+        texto: String
+    ): String? {
+
+        val limpio = texto.trim()
+
+        if (limpio.isBlank()) {
+            return null
+        }
+
+        limpio
+            .replace(" ", "")
+            .takeIf { it.all(Char::isDigit) }
+            ?.let {
+                return it
+            }
+
+        val digitos = mapOf(
+            "cero" to "0",
+            "uno" to "1",
+            "una" to "1",
+            "dos" to "2",
+            "tres" to "3",
+            "cuatro" to "4",
+            "cinco" to "5",
+            "seis" to "6",
+            "siete" to "7",
+            "ocho" to "8",
+            "nueve" to "9"
+        )
+
+        val palabras = limpio
+            .split(" ")
+            .filter { it.isNotBlank() }
+
+        if (
+            palabras.isNotEmpty() &&
+            palabras.all { digitos.containsKey(it) }
+        ) {
+            return palabras.joinToString("") {
+                digitos.getValue(it)
+            }
+        }
+
+        return convertirPalabrasAEntero(limpio)
+            ?.toString()
     }
 
     private fun convertirPalabrasAEntero(
@@ -782,74 +835,70 @@ object VoiceCommandParser {
                 return it
             }
 
-        val unidades =
-            mapOf(
-                "cero" to 0,
-                "uno" to 1,
-                "una" to 1,
-                "dos" to 2,
-                "tres" to 3,
-                "cuatro" to 4,
-                "cinco" to 5,
-                "seis" to 6,
-                "siete" to 7,
-                "ocho" to 8,
-                "nueve" to 9,
-                "diez" to 10,
-                "once" to 11,
-                "doce" to 12,
-                "trece" to 13,
-                "catorce" to 14,
-                "quince" to 15,
-                "dieciseis" to 16,
-                "diecisiete" to 17,
-                "dieciocho" to 18,
-                "diecinueve" to 19,
-                "veinte" to 20,
-                "veintiuno" to 21,
-                "veintidos" to 22,
-                "veintitres" to 23,
-                "veinticuatro" to 24,
-                "veinticinco" to 25,
-                "veintiseis" to 26,
-                "veintisiete" to 27,
-                "veintiocho" to 28,
-                "veintinueve" to 29
-            )
+        val unidades = mapOf(
+            "cero" to 0,
+            "uno" to 1,
+            "una" to 1,
+            "dos" to 2,
+            "tres" to 3,
+            "cuatro" to 4,
+            "cinco" to 5,
+            "seis" to 6,
+            "siete" to 7,
+            "ocho" to 8,
+            "nueve" to 9,
+            "diez" to 10,
+            "once" to 11,
+            "doce" to 12,
+            "trece" to 13,
+            "catorce" to 14,
+            "quince" to 15,
+            "dieciseis" to 16,
+            "diecisiete" to 17,
+            "dieciocho" to 18,
+            "diecinueve" to 19,
+            "veinte" to 20,
+            "veintiuno" to 21,
+            "veintidos" to 22,
+            "veintitres" to 23,
+            "veinticuatro" to 24,
+            "veinticinco" to 25,
+            "veintiseis" to 26,
+            "veintisiete" to 27,
+            "veintiocho" to 28,
+            "veintinueve" to 29
+        )
 
-        val decenas =
-            mapOf(
-                "treinta" to 30,
-                "cuarenta" to 40,
-                "cincuenta" to 50,
-                "sesenta" to 60,
-                "setenta" to 70,
-                "ochenta" to 80,
-                "noventa" to 90
-            )
+        val decenas = mapOf(
+            "treinta" to 30,
+            "cuarenta" to 40,
+            "cincuenta" to 50,
+            "sesenta" to 60,
+            "setenta" to 70,
+            "ochenta" to 80,
+            "noventa" to 90
+        )
 
-        val centenas =
-            mapOf(
-                "cien" to 100,
-                "ciento" to 100,
-                "doscientos" to 200,
-                "trescientos" to 300,
-                "cuatrocientos" to 400,
-                "quinientos" to 500,
-                "seiscientos" to 600,
-                "setecientos" to 700,
-                "ochocientos" to 800,
-                "novecientos" to 900
-            )
+        val centenas = mapOf(
+            "cien" to 100,
+            "ciento" to 100,
+            "doscientos" to 200,
+            "trescientos" to 300,
+            "cuatrocientos" to 400,
+            "quinientos" to 500,
+            "seiscientos" to 600,
+            "setecientos" to 700,
+            "ochocientos" to 800,
+            "novecientos" to 900
+        )
 
-        val palabras =
-            texto
-                .replace("-", " ")
-                .split(" ")
-                .filter {
-                    it.isNotBlank() &&
-                            it != "y"
-                }
+        val palabras = texto
+            .replace("-", " ")
+            .split(" ")
+            .filter {
+                it.isNotBlank() &&
+                        it != "y"
+            }
 
         if (palabras.isEmpty()) {
             return null
@@ -859,11 +908,8 @@ object VoiceCommandParser {
         var acumulado = 0
 
         palabras.forEach { palabra ->
-
             when {
-
                 palabra == "mil" -> {
-
                     acumulado =
                         if (acumulado == 0) {
                             1
@@ -876,21 +922,15 @@ object VoiceCommandParser {
                 }
 
                 centenas.containsKey(palabra) -> {
-
-                    acumulado +=
-                        centenas.getValue(palabra)
+                    acumulado += centenas.getValue(palabra)
                 }
 
                 decenas.containsKey(palabra) -> {
-
-                    acumulado +=
-                        decenas.getValue(palabra)
+                    acumulado += decenas.getValue(palabra)
                 }
 
                 unidades.containsKey(palabra) -> {
-
-                    acumulado +=
-                        unidades.getValue(palabra)
+                    acumulado += unidades.getValue(palabra)
                 }
 
                 else -> {
@@ -902,27 +942,14 @@ object VoiceCommandParser {
         return total + acumulado
     }
 
-    private fun convertirPalabraNumero(
-        palabra: String
-    ): Int? {
-
-        return convertirPalabrasAEntero(
-            palabra
-        )
-    }
-
     private fun normalizarNombre(
         valor: String
     ): String {
-
         return valor
             .trim()
             .split(" ")
-            .filter {
-                it.isNotBlank()
-            }
+            .filter { it.isNotBlank() }
             .joinToString(" ") { palabra ->
-
                 palabra.replaceFirstChar { caracter ->
                     caracter.uppercase()
                 }
@@ -933,18 +960,17 @@ object VoiceCommandParser {
         texto: String
     ): String {
 
-        val sinTildes =
-            Normalizer.normalize(
-                texto.lowercase(),
-                Normalizer.Form.NFD
-            ).replace(
-                Regex("\\p{Mn}+"),
-                ""
-            )
+        val sinTildes = Normalizer.normalize(
+            texto.lowercase(),
+            Normalizer.Form.NFD
+        ).replace(
+            Regex("\\p{Mn}+"),
+            ""
+        )
 
         return sinTildes
             .replace(
-                Regex("[^a-z0-9., ]"),
+                Regex("[^a-z0-9.,/ ]"),
                 " "
             )
             .replace(
@@ -957,10 +983,7 @@ object VoiceCommandParser {
     private fun formatearNumero(
         valor: Double
     ): String {
-
-        return if (
-            valor % 1.0 == 0.0
-        ) {
+        return if (valor % 1.0 == 0.0) {
             valor
                 .toLong()
                 .toString()
