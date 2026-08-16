@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -70,6 +72,10 @@ import com.luis.mevmantenimiento.ui.screens.RegistroHistorialIntervencion
 import com.luis.mevmantenimiento.ui.screens.HistorialIntervencionScreen
 import com.luis.mevmantenimiento.ui.screens.RegistroRevisionIntervencion
 import com.luis.mevmantenimiento.ui.screens.RevisionIntervencionScreen
+import com.luis.mevmantenimiento.ui.screens.ReportesScreen
+import com.luis.mevmantenimiento.ui.screens.ReporteResumen
+import com.luis.mevmantenimiento.data.ReportesRepository
+import com.luis.mevmantenimiento.data.ExportadorReportes
 
 class MainActivity : ComponentActivity() {
 
@@ -250,6 +256,70 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf("")
                 }
 
+                var resumenReportes by remember {
+                    mutableStateOf<ReporteResumen?>(null)
+                }
+
+                var cargandoReportes by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeReportes by remember {
+                    mutableStateOf("")
+                }
+
+                val exportarPdfLauncher =
+                    rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.CreateDocument(
+                            "application/pdf"
+                        )
+                    ) { uri ->
+                        val resumen = resumenReportes
+
+                        if (uri != null && resumen != null) {
+                            try {
+                                contentResolver.openOutputStream(uri)?.use { salida ->
+                                    ExportadorReportes.exportarPdf(
+                                        outputStream = salida,
+                                        resumen = resumen
+                                    )
+                                }
+
+                                mensajeReportes =
+                                    "PDF exportado correctamente."
+                            } catch (error: Exception) {
+                                mensajeReportes =
+                                    "No se pudo exportar el PDF: ${error.message}"
+                            }
+                        }
+                    }
+
+                val exportarExcelLauncher =
+                    rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.CreateDocument(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    ) { uri ->
+                        val resumen = resumenReportes
+
+                        if (uri != null && resumen != null) {
+                            try {
+                                contentResolver.openOutputStream(uri)?.use { salida ->
+                                    ExportadorReportes.exportarExcel(
+                                        outputStream = salida,
+                                        resumen = resumen
+                                    )
+                                }
+
+                                mensajeReportes =
+                                    "Excel exportado correctamente."
+                            } catch (error: Exception) {
+                                mensajeReportes =
+                                    "No se pudo exportar el Excel: ${error.message}"
+                            }
+                        }
+                    }
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
@@ -390,66 +460,122 @@ class MainActivity : ComponentActivity() {
                                 }
                                 "REVISION_REGISTROS" -> {
                                     RevisionRegistrosScreen(
-                                        registros = registrosRevision,
+                                        registrosMantenimiento = registrosRevision,
+                                        registrosHuella = registrosRevisionHuella,
+                                        registrosIntervencion = registrosRevisionIntervencion,
                                         cargando = cargandoRevision,
                                         mensaje = mensajeRevision,
 
-                                        onAprobar = { registro ->
-                                            if (!cargandoRevision) {
-                                                cargandoRevision = true
-                                                mensajeRevision = "Aprobando registro..."
+                                        onAprobarMantenimiento = { registro ->
+                                            cargandoRevision = true
+                                            mensajeRevision = "Aprobando mantenimiento..."
 
-                                                MantenimientoRepository.actualizarEstadoRevision(
-                                                    idRegistro = registro.id,
-                                                    nuevoEstado = "APROBADO",
-
-                                                    onFinalizado = {
-                                                        registrosRevision =
-                                                            registrosRevision.filter {
-                                                                it.id != registro.id
-                                                            }
-
-                                                        cargandoRevision = false
-                                                        mensajeRevision =
-                                                            "Registro ${registro.codigoActivo} " +
-                                                                    "aprobado correctamente."
-                                                    },
-
-                                                    onError = { mensaje ->
-                                                        cargandoRevision = false
-                                                        mensajeRevision = mensaje
-                                                    }
-                                                )
-                                            }
+                                            MantenimientoRepository.actualizarEstadoRevision(
+                                                idRegistro = registro.id,
+                                                nuevoEstado = "APROBADO",
+                                                onFinalizado = {
+                                                    registrosRevision = registrosRevision.filter { it.id != registro.id }
+                                                    cargandoRevision = false
+                                                    mensajeRevision = "Mantenimiento ${registro.codigoActivo} aprobado correctamente."
+                                                },
+                                                onError = { mensaje ->
+                                                    cargandoRevision = false
+                                                    mensajeRevision = mensaje
+                                                }
+                                            )
                                         },
 
-                                        onDevolver = { registro, motivoDevolucion ->
-                                            if (!cargandoRevision) {
-                                                cargandoRevision = true
-                                                mensajeRevision = "Devolviendo registro..."
+                                        onDevolverMantenimiento = { registro, motivo ->
+                                            cargandoRevision = true
+                                            mensajeRevision = "Devolviendo mantenimiento..."
 
-                                                MantenimientoRepository.devolverRegistro(
-                                                    idRegistro = registro.id,
-                                                    motivoDevolucion = motivoDevolucion,
+                                            MantenimientoRepository.devolverRegistro(
+                                                idRegistro = registro.id,
+                                                motivoDevolucion = motivo,
+                                                onFinalizado = {
+                                                    registrosRevision = registrosRevision.filter { it.id != registro.id }
+                                                    cargandoRevision = false
+                                                    mensajeRevision = "Mantenimiento ${registro.codigoActivo} devuelto."
+                                                },
+                                                onError = { mensaje ->
+                                                    cargandoRevision = false
+                                                    mensajeRevision = mensaje
+                                                }
+                                            )
+                                        },
 
-                                                    onFinalizado = {
-                                                        registrosRevision =
-                                                            registrosRevision.filter {
-                                                                it.id != registro.id
-                                                            }
+                                        onAprobarHuella = { registro ->
+                                            cargandoRevision = true
+                                            mensajeRevision = "Aprobando toma de huella..."
 
-                                                        cargandoRevision = false
-                                                        mensajeRevision =
-                                                            "Registro ${registro.codigoActivo} " +
-                                                                    "devuelto para corrección."
-                                                    },
+                                            VulcanizacionRepository.aprobarTomaHuella(
+                                                idRegistro = registro.id,
+                                                onFinalizado = {
+                                                    registrosRevisionHuella = registrosRevisionHuella.filter { it.id != registro.id }
+                                                    cargandoRevision = false
+                                                    mensajeRevision = "Toma de ${registro.codigoActivo} aprobada correctamente."
+                                                },
+                                                onError = { mensaje ->
+                                                    cargandoRevision = false
+                                                    mensajeRevision = mensaje
+                                                }
+                                            )
+                                        },
 
-                                                    onError = { mensaje ->
-                                                        cargandoRevision = false
-                                                        mensajeRevision = mensaje
-                                                    }
-                                                )
-                                            }
+                                        onDevolverHuella = { registro, motivo ->
+                                            cargandoRevision = true
+                                            mensajeRevision = "Devolviendo toma de huella..."
+
+                                            VulcanizacionRepository.devolverTomaHuella(
+                                                idRegistro = registro.id,
+                                                motivoDevolucion = motivo,
+                                                onFinalizado = {
+                                                    registrosRevisionHuella = registrosRevisionHuella.filter { it.id != registro.id }
+                                                    cargandoRevision = false
+                                                    mensajeRevision = "Toma de ${registro.codigoActivo} devuelta."
+                                                },
+                                                onError = { mensaje ->
+                                                    cargandoRevision = false
+                                                    mensajeRevision = mensaje
+                                                }
+                                            )
+                                        },
+
+                                        onAprobarIntervencion = { registro ->
+                                            cargandoRevision = true
+                                            mensajeRevision = "Aprobando intervención..."
+
+                                            VulcanizacionRepository.aprobarIntervencionLlanta(
+                                                idRegistro = registro.id,
+                                                onFinalizado = {
+                                                    registrosRevisionIntervencion = registrosRevisionIntervencion.filter { it.id != registro.id }
+                                                    cargandoRevision = false
+                                                    mensajeRevision = "Intervención ${registro.codigoActivo} aprobada correctamente."
+                                                },
+                                                onError = { mensaje ->
+                                                    cargandoRevision = false
+                                                    mensajeRevision = mensaje
+                                                }
+                                            )
+                                        },
+
+                                        onDevolverIntervencion = { registro, motivo ->
+                                            cargandoRevision = true
+                                            mensajeRevision = "Devolviendo intervención..."
+
+                                            VulcanizacionRepository.devolverIntervencionLlanta(
+                                                idRegistro = registro.id,
+                                                motivoDevolucion = motivo,
+                                                onFinalizado = {
+                                                    registrosRevisionIntervencion = registrosRevisionIntervencion.filter { it.id != registro.id }
+                                                    cargandoRevision = false
+                                                    mensajeRevision = "Intervención ${registro.codigoActivo} devuelta."
+                                                },
+                                                onError = { mensaje ->
+                                                    cargandoRevision = false
+                                                    mensajeRevision = mensaje
+                                                }
+                                            )
                                         },
 
                                         onVolver = {
@@ -458,6 +584,32 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
+
+                                "REPORTES" -> {
+                                    ReportesScreen(
+                                        resumen = resumenReportes,
+                                        cargando = cargandoReportes,
+                                        mensaje = mensajeReportes,
+
+                                        onExportarPdf = {
+                                            exportarPdfLauncher.launch(
+                                                "Reporte_MEV.pdf"
+                                            )
+                                        },
+
+                                        onExportarExcel = {
+                                            exportarExcelLauncher.launch(
+                                                "Reporte_MEV.xlsx"
+                                            )
+                                        },
+
+                                        onVolver = {
+                                            mensajeReportes = ""
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
                                 "MI_HISTORIAL" -> {
                                     MiHistorialScreen(
                                         registrosMantenimiento = historial,
@@ -1932,6 +2084,28 @@ class MainActivity : ComponentActivity() {
                                                     cargandoRevision = true
                                                     mensajeRevision = ""
                                                     registrosRevision = emptyList()
+                                                    registrosRevisionHuella = emptyList()
+                                                    registrosRevisionIntervencion = emptyList()
+
+                                                    var cargasPendientes = 3
+
+                                                    fun finalizarRevision() {
+                                                        cargasPendientes--
+                                                        if (cargasPendientes <= 0) {
+                                                            cargandoRevision = false
+                                                            pantallaActual = "REVISION_REGISTROS"
+                                                        }
+                                                    }
+
+                                                    fun registrarErrorRevision(mensaje: String) {
+                                                        mensajeRevision =
+                                                            if (mensajeRevision.isBlank()) {
+                                                                mensaje
+                                                            } else {
+                                                                mensajeRevision + "\n" + mensaje
+                                                            }
+                                                        finalizarRevision()
+                                                    }
 
                                                     MantenimientoRepository.cargarRegistrosPendientesRevision(
                                                         onFinalizado = { datos ->
@@ -1950,18 +2124,88 @@ class MainActivity : ComponentActivity() {
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
                                                                 )
                                                             }
-
-                                                            cargandoRevision = false
-                                                            pantallaActual = "REVISION_REGISTROS"
+                                                            finalizarRevision()
                                                         },
-
                                                         onError = { mensaje ->
-                                                            cargandoRevision = false
-                                                            mensajeRevision = mensaje
-                                                            pantallaActual = "REVISION_REGISTROS"
+                                                            registrarErrorRevision("Mantenimiento: $mensaje")
                                                         }
                                                     )
-                                                }
+
+                                                    VulcanizacionRepository.cargarRegistrosPendientesRevision(
+                                                        onFinalizado = { datos ->
+                                                            registrosRevisionHuella = datos.map { registro ->
+                                                                RegistroRevisionHuella(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    huellas = (1..12).map { posicion ->
+                                                                        (registro["P$posicion"] as? Number)?.toDouble()
+                                                                    },
+                                                                    estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
+                                                                    novedad = registro["novedad"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    uidUsuario = registro["uidUsuario"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                )
+                                                            }
+                                                            finalizarRevision()
+                                                        },
+                                                        onError = { mensaje ->
+                                                            registrarErrorRevision("Toma de huella: $mensaje")
+                                                        }
+                                                    )
+
+                                                    VulcanizacionRepository.cargarIntervencionesPendientesRevision(
+                                                        onFinalizado = { datos ->
+                                                            registrosRevisionIntervencion = datos.map { registro ->
+                                                                RegistroRevisionIntervencion(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    tipoIntervencion = registro["tipoIntervencion"]?.toString().orEmpty(),
+                                                                    posicion = registro["posicion"]?.toString().orEmpty(),
+                                                                    huella = (registro["huella"] as? Number)?.toDouble(),
+                                                                    marcaLlanta = registro["marcaLlanta"]?.toString().orEmpty(),
+                                                                    medidaLlanta = registro["medidaLlanta"]?.toString().orEmpty(),
+                                                                    serieLlanta = registro["serieLlanta"]?.toString().orEmpty(),
+                                                                    motivo = registro["motivo"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    uidUsuario = registro["uidUsuario"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                )
+                                                            }
+                                                            finalizarRevision()
+                                                        },
+                                                        onError = { mensaje ->
+                                                            registrarErrorRevision("Intervenciones: $mensaje")
+                                                        }
+                                                    )
+                                                }                                                "Reportes" -> {
+                                                cargandoReportes = true
+                                                mensajeReportes = "Cargando indicadores..."
+                                                resumenReportes = null
+
+                                                ReportesRepository.cargarResumen(
+                                                    onFinalizado = { resumen ->
+                                                        resumenReportes = resumen
+                                                        cargandoReportes = false
+                                                        mensajeReportes = ""
+                                                        pantallaActual = "REPORTES"
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        cargandoReportes = false
+                                                        mensajeReportes = mensaje
+                                                        pantallaActual = "REPORTES"
+                                                    }
+                                                )
+                                            }
+
                                             }
                                         },
                                         onCerrarSesion = {
