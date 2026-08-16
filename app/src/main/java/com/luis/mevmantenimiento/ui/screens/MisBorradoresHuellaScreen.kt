@@ -32,7 +32,8 @@ data class BorradorHuella(
     val estadoGeneral: String,
     val novedad: String,
     val nombreTecnico: String,
-    val estadoRegistro: String
+    val estadoRegistro: String,
+    val motivoDevolucion: String = ""
 )
 
 @Composable

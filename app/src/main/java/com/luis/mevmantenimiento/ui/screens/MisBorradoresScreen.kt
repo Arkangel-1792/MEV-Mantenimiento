@@ -36,210 +36,168 @@ data class BorradorMantenimiento(
 
 @Composable
 fun MisBorradoresScreen(
-    borradores: List<BorradorMantenimiento>,
+    borradoresMantenimiento: List<BorradorMantenimiento>,
+    borradoresHuella: List<BorradorHuella>,
+    borradoresIntervencion: List<BorradorIntervencionLlanta>,
     cargando: Boolean,
     mensaje: String,
-    onSeleccionarBorrador: (BorradorMantenimiento) -> Unit,
+    onSeleccionarMantenimiento: (BorradorMantenimiento) -> Unit,
+    onSeleccionarHuella: (BorradorHuella) -> Unit,
+    onSeleccionarIntervencion: (BorradorIntervencionLlanta) -> Unit,
     onVolver: () -> Unit
 ) {
+    val total = borradoresMantenimiento.size + borradoresHuella.size + borradoresIntervencion.size
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 20.dp)
+        modifier = Modifier.fillMaxSize().padding(top = 20.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp)
-        ) {
-            Text(
-                text = "Mis borradores y correcciones",
-                style = MaterialTheme.typography.headlineSmall
-            )
-
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Text("Mis borradores y correcciones", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(4.dp))
-
             Text(
-                text = "Registros guardados o devueltos que todavía pueden editarse y enviarse.",
+                "Mantenimiento, tomas de huella e intervenciones pendientes en un solo lugar.",
                 style = MaterialTheme.typography.bodyMedium
             )
-
             if (mensaje.isNotBlank()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = mensaje,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text(mensaje)
             }
-
             if (cargando) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Cargando registros...",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("Cargando registros...")
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Registros encontrados: ${borradores.size}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text("Registros encontrados: $total")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (!cargando && borradores.isEmpty()) {
+        if (!cargando && total == 0) {
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 20.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "No tienes borradores ni registros devueltos pendientes.",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Text("No tienes borradores ni registros devueltos pendientes.")
             }
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(
-                    start = 20.dp,
-                    end = 20.dp,
-                    bottom = 12.dp
-                ),
+                contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(
-                    items = borradores,
-                    key = { borrador -> borrador.id }
-                ) { borrador ->
-                    BorradorCard(
-                        borrador = borrador,
-                        onEditar = {
-                            onSeleccionarBorrador(borrador)
+                if (borradoresMantenimiento.isNotEmpty()) {
+                    item { Text("Mantenimiento", style = MaterialTheme.typography.titleLarge) }
+                    items(borradoresMantenimiento, key = { "M_${it.id}" }) { borrador ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val devuelto = borrador.estadoRegistro == "DEVUELTO"
+                                Text(borrador.codigoActivo, style = MaterialTheme.typography.titleMedium)
+                                Text(if (devuelto) "Estado: DEVUELTO PARA CORRECCIÓN" else "Estado: BORRADOR")
+                                Text("Servicio: ${borrador.tipoServicio}")
+                                Text("Kilometraje: ${borrador.kilometraje ?: "Sin registro"} · Horómetro: ${borrador.horometro ?: "Sin registro"}")
+                                if (devuelto) {
+                                    Text(
+                                        "Motivo: ${borrador.motivoDevolucion.ifBlank { "Sin detalle" }}",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                Button(
+                                    onClick = { onSeleccionarMantenimiento(borrador) },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(if (devuelto) "Corregir registro" else "Editar borrador")
+                                }
+                            }
                         }
-                    )
+                    }
+                }
+
+                if (borradoresHuella.isNotEmpty()) {
+                    item { Text("Toma de huella", style = MaterialTheme.typography.titleLarge) }
+                    items(borradoresHuella, key = { "H_${it.id}" }) { borrador ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val devuelto = borrador.estadoRegistro == "DEVUELTO"
+                                Text(borrador.codigoActivo, style = MaterialTheme.typography.titleMedium)
+                                Text(if (devuelto) "Estado: DEVUELTO PARA CORRECCIÓN" else "Estado: BORRADOR")
+                                Text("Proyecto: ${borrador.proyecto.ifBlank { "Sin registrar" }}")
+                                Text("Estado general: ${borrador.estadoGeneral.ifBlank { "Sin registrar" }}")
+                                if (devuelto) {
+                                    Text(
+                                        "Motivo: ${borrador.motivoDevolucion.ifBlank { "Sin detalle" }}",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                Button(
+                                    onClick = { onSeleccionarHuella(borrador) },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(if (devuelto) "Corregir registro" else "Editar borrador")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (borradoresIntervencion.isNotEmpty()) {
+                    item { Text("Intervenciones de llanta", style = MaterialTheme.typography.titleLarge) }
+                    items(borradoresIntervencion, key = { "I_${it.id}" }) { borrador ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val devuelto = borrador.estadoRegistro == "DEVUELTO"
+                                Text(borrador.codigoActivo, style = MaterialTheme.typography.titleMedium)
+                                Text(if (devuelto) "Estado: DEVUELTO PARA CORRECCIÓN" else "Estado: BORRADOR")
+                                Text("Intervención: ${borrador.tipoIntervencion.ifBlank { "Sin registrar" }}")
+                                Text("Posición: ${borrador.posicion.ifBlank { "Sin registrar" }}")
+                                Text("Huella: ${borrador.huella?.let { "$it mm" } ?: "Sin registrar"}")
+                                if (devuelto) {
+                                    Text(
+                                        "Motivo: ${borrador.motivoDevolucion.ifBlank { "Sin detalle" }}",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                Button(
+                                    onClick = { onSeleccionarIntervencion(borrador) },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(if (devuelto) "Corregir registro" else "Editar borrador")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
         OutlinedButton(
             onClick = onVolver,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 20.dp,
-                    end = 20.dp,
-                    bottom = 16.dp
-                )
+            modifier = Modifier.fillMaxWidth().padding(20.dp)
         ) {
             Text("Volver al menú principal")
         }
     }
-}
-
-@Composable
-private fun BorradorCard(
-    borrador: BorradorMantenimiento,
-    onEditar: () -> Unit
-) {
-    val esDevuelto = borrador.estadoRegistro == "DEVUELTO"
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = borrador.codigoActivo,
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                text = if (esDevuelto) {
-                    "Estado: DEVUELTO PARA CORRECCIÓN"
-                } else {
-                    "Estado: BORRADOR"
-                },
-                style = MaterialTheme.typography.labelLarge,
-                color = if (esDevuelto) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.primary
-                }
-            )
-
-            Text(
-                text = "Servicio: ${borrador.tipoServicio}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Text(
-                text = obtenerLecturaBorrador(borrador),
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Text(
-                text = if (borrador.accionEjecutada.isBlank()) {
-                    "Acción: Sin registrar"
-                } else {
-                    "Acción: ${borrador.accionEjecutada}"
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            if (esDevuelto) {
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Motivo de devolución:",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-
-                Text(
-                    text = borrador.motivoDevolucion.ifBlank {
-                        "El revisor no registró un motivo."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = onEditar,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (esDevuelto) {
-                        "Corregir registro"
-                    } else {
-                        "Editar borrador"
-                    }
-                )
-            }
-        }
-    }
-}
-
-private fun obtenerLecturaBorrador(
-    borrador: BorradorMantenimiento
-): String {
-    val kilometraje = borrador.kilometraje?.let {
-        "$it km"
-    } ?: "Sin registro"
-
-    val horometro = borrador.horometro?.let {
-        "$it h"
-    } ?: "Sin registro"
-
-    return "Kilometraje: $kilometraje · Horómetro: $horometro"
 }

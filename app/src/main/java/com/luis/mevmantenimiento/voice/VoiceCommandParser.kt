@@ -282,7 +282,7 @@ object VoiceCommandParser {
          * posicion 2 7 punto 5 milimetros tecnico Luis Barragan"
          */
         val patronInicio = Regex(
-            """\b(?:seleccionar\s+activo|activo|volqueta|camioneta|equipo|proyecto|kilometraje|kilometros?|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|tipo\s+de\s+servicio|servicio|accion\s+ejecutada|accion\s+realizada|trabajo\s+realizado|accion|orden\s+de\s+trabajo|numero\s+de\s+orden|orden|numero\s+de\s+pedido|pedido|tipo\s+de\s+intervencion|intervencion|huella\s+de\s+llanta|profundidad\s+de\s+huella|profundidad|huella|marca\s+de\s+llanta|marca\s+llanta|marca|medida\s+de\s+llanta|medida\s+llanta|medida|serie\s+de\s+llanta|serie\s+llanta|numero\s+de\s+serie|serie|motivo\s+de\s+intervencion|motivo|estado\s+general|estado|novedad|observacion|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+\d{1,2}|p\s*\d{1,2}|guardar\s+borrador|enviar\s+registro)\b"""
+            """\b(?:seleccionar\s+activo|activo|volqueta|camioneta|equipo|proyecto|kilometraje|kilometros?|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|tipo\s+de\s+servicio|servicio|accion\s+ejecutada|accion\s+realizada|trabajo\s+realizado|accion|orden\s+de\s+trabajo|numero\s+de\s+orden|orden|numero\s+de\s+pedido|pedido|tipo\s+de\s+intervencion|intervencion|huella\s+de\s+llanta|profundidad\s+de\s+huella|profundidad|huella|marca\s+de\s+llanta|marca\s+llanta|marca|medida\s+de\s+llanta|medida\s+llanta|medida|serie\s+de\s+llanta|serie\s+llanta|numero\s+de\s+serie|serie|motivo\s+de\s+intervencion|motivo|estado\s+general|estado|novedad|observacion|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|p\s*(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|guardar\s+borrador|enviar\s+registro)\b"""
         )
 
         val inicios = patronInicio
@@ -400,23 +400,27 @@ object VoiceCommandParser {
 
         if (
             !texto.contains("posicion") &&
-            !Regex("""\bp\s*\d+""")
-                .containsMatchIn(texto)
+            !Regex(
+                """\bp\s*(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\b"""
+            ).containsMatchIn(texto)
         ) {
             return null
         }
 
         val coincidencia =
             Regex(
-                """(?:posicion|p)\s*(\d{1,2})\s*(?:valor|es|en)?\s*(.+)"""
+                """(?:posicion|p)\s*(\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:valor|es|en)?\s*(.+)"""
             ).find(texto)
                 ?: return null
 
         val posicion =
-            coincidencia
-                .groupValues[1]
-                .toIntOrNull()
-                ?: return null
+            convertirPalabrasAEntero(
+                coincidencia.groupValues[1]
+            ) ?: return null
+
+        if (posicion !in 1..12) {
+            return null
+        }
 
         var valorTexto =
             coincidencia
@@ -448,15 +452,14 @@ object VoiceCommandParser {
     ): VoiceCommand.ActualizarPosicionLlanta? {
 
         val coincidencia = Regex(
-            """^(?:posicion|p)\s*(\d{1,2})\s*$"""
+            """^(?:posicion|p)\s*(\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*$"""
         ).find(texto)
             ?: return null
 
         val posicion =
-            coincidencia
-                .groupValues[1]
-                .toIntOrNull()
-                ?: return null
+            convertirPalabrasAEntero(
+                coincidencia.groupValues[1]
+            ) ?: return null
 
         if (posicion !in 1..12) {
             return null

@@ -62,6 +62,14 @@ import com.luis.mevmantenimiento.ui.screens.HistorialHuellaScreen
 import com.luis.mevmantenimiento.ui.screens.RegistroHistorialHuella
 import com.luis.mevmantenimiento.ui.screens.RevisionHuellaScreen
 import com.luis.mevmantenimiento.ui.screens.RegistroRevisionHuella
+import com.luis.mevmantenimiento.ui.screens.IntervencionLlantaScreen
+import com.luis.mevmantenimiento.ui.screens.BorradorIntervencionLlanta
+import com.luis.mevmantenimiento.ui.screens.MisBorradoresIntervencionScreen
+import com.luis.mevmantenimiento.ui.screens.EditarBorradorIntervencionScreen
+import com.luis.mevmantenimiento.ui.screens.RegistroHistorialIntervencion
+import com.luis.mevmantenimiento.ui.screens.HistorialIntervencionScreen
+import com.luis.mevmantenimiento.ui.screens.RegistroRevisionIntervencion
+import com.luis.mevmantenimiento.ui.screens.RevisionIntervencionScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -191,6 +199,54 @@ class MainActivity : ComponentActivity() {
                 }
 
                 var mensajeRevisionHuella by remember {
+                    mutableStateOf("")
+                }
+
+                var guardandoIntervencionLlanta by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeIntervencionLlanta by remember {
+                    mutableStateOf("")
+                }
+
+                var borradoresIntervencion by remember {
+                    mutableStateOf<List<BorradorIntervencionLlanta>>(emptyList())
+                }
+
+                var borradorIntervencionSeleccionado by remember {
+                    mutableStateOf<BorradorIntervencionLlanta?>(null)
+                }
+
+                var cargandoBorradoresIntervencion by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeBorradoresIntervencion by remember {
+                    mutableStateOf("")
+                }
+
+                var historialIntervencion by remember {
+                    mutableStateOf<List<RegistroHistorialIntervencion>>(emptyList())
+                }
+
+                var cargandoHistorialIntervencion by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeHistorialIntervencion by remember {
+                    mutableStateOf("")
+                }
+
+                var registrosRevisionIntervencion by remember {
+                    mutableStateOf<List<RegistroRevisionIntervencion>>(emptyList())
+                }
+
+                var cargandoRevisionIntervencion by remember {
+                    mutableStateOf(false)
+                }
+
+                var mensajeRevisionIntervencion by remember {
                     mutableStateOf("")
                 }
 
@@ -404,7 +460,9 @@ class MainActivity : ComponentActivity() {
                                 }
                                 "MI_HISTORIAL" -> {
                                     MiHistorialScreen(
-                                        registros = historial,
+                                        registrosMantenimiento = historial,
+                                        registrosHuella = historialHuella,
+                                        registrosIntervencion = historialIntervencion,
                                         cargando = cargandoHistorial,
                                         mensaje = mensajeHistorial,
                                         onVolver = {
@@ -415,13 +473,29 @@ class MainActivity : ComponentActivity() {
 
                                 "MIS_BORRADORES" -> {
                                     MisBorradoresScreen(
-                                        borradores = borradores,
+                                        borradoresMantenimiento = borradores,
+                                        borradoresHuella = borradoresHuella,
+                                        borradoresIntervencion = borradoresIntervencion,
                                         cargando = cargandoBorradores,
                                         mensaje = mensajeBorradores,
-                                        onSeleccionarBorrador = { borrador ->
+
+                                        onSeleccionarMantenimiento = { borrador ->
                                             borradorSeleccionado = borrador
                                             pantallaActual = "EDITAR_BORRADOR"
                                         },
+
+                                        onSeleccionarHuella = { borrador ->
+                                            borradorHuellaSeleccionado = borrador
+                                            mensajeHuella = ""
+                                            pantallaActual = "EDITAR_BORRADOR_HUELLA"
+                                        },
+
+                                        onSeleccionarIntervencion = { borrador ->
+                                            borradorIntervencionSeleccionado = borrador
+                                            mensajeIntervencionLlanta = ""
+                                            pantallaActual = "EDITAR_BORRADOR_INTERVENCION"
+                                        },
+
                                         onVolver = {
                                             pantallaActual = "MENU"
                                         }
@@ -664,6 +738,328 @@ class MainActivity : ComponentActivity() {
 
                                         onVolver = {
                                             mensajeHuella = ""
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "EDITAR_BORRADOR_INTERVENCION" -> {
+                                    borradorIntervencionSeleccionado?.let { borrador ->
+                                        EditarBorradorIntervencionScreen(
+                                            borrador = borrador,
+                                            activos = activos,
+                                            guardando = guardandoIntervencionLlanta,
+                                            mensaje = mensajeIntervencionLlanta,
+
+                                            onActualizarBorrador = {
+                                                    idRegistro,
+                                                    codigoActivo,
+                                                    proyecto,
+                                                    kilometraje,
+                                                    horometro,
+                                                    tipoIntervencion,
+                                                    posicion,
+                                                    huella,
+                                                    marcaLlanta,
+                                                    medidaLlanta,
+                                                    serieLlanta,
+                                                    motivo,
+                                                    observaciones,
+                                                    nombreTecnico ->
+
+                                                if (!guardandoIntervencionLlanta) {
+                                                    guardandoIntervencionLlanta = true
+                                                    mensajeIntervencionLlanta =
+                                                        "Guardando cambios..."
+
+                                                    VulcanizacionRepository.actualizarBorradorIntervencion(
+                                                        idRegistro = idRegistro,
+                                                        codigoActivo = codigoActivo,
+                                                        proyecto = proyecto,
+                                                        kilometraje = kilometraje,
+                                                        horometro = horometro,
+                                                        tipoIntervencion = tipoIntervencion,
+                                                        posicion = posicion,
+                                                        huella = huella,
+                                                        marcaLlanta = marcaLlanta,
+                                                        medidaLlanta = medidaLlanta,
+                                                        serieLlanta = serieLlanta,
+                                                        motivo = motivo,
+                                                        observaciones = observaciones,
+                                                        nombreTecnico = nombreTecnico,
+                                                        onFinalizado = {
+                                                            guardandoIntervencionLlanta = false
+                                                            mensajeIntervencionLlanta =
+                                                                "Borrador actualizado correctamente."
+                                                        },
+                                                        onError = { mensaje ->
+                                                            guardandoIntervencionLlanta = false
+                                                            mensajeIntervencionLlanta = mensaje
+                                                        }
+                                                    )
+                                                }
+                                            },
+
+                                            onEnviarBorrador = {
+                                                    idRegistro,
+                                                    codigoActivo,
+                                                    proyecto,
+                                                    kilometraje,
+                                                    horometro,
+                                                    tipoIntervencion,
+                                                    posicion,
+                                                    huella,
+                                                    marcaLlanta,
+                                                    medidaLlanta,
+                                                    serieLlanta,
+                                                    motivo,
+                                                    observaciones,
+                                                    nombreTecnico ->
+
+                                                if (!guardandoIntervencionLlanta) {
+                                                    guardandoIntervencionLlanta = true
+                                                    mensajeIntervencionLlanta =
+                                                        "Enviando intervención..."
+
+                                                    VulcanizacionRepository.enviarBorradorIntervencion(
+                                                        idRegistro = idRegistro,
+                                                        codigoActivo = codigoActivo,
+                                                        proyecto = proyecto,
+                                                        kilometraje = kilometraje,
+                                                        horometro = horometro,
+                                                        tipoIntervencion = tipoIntervencion,
+                                                        posicion = posicion,
+                                                        huella = huella,
+                                                        marcaLlanta = marcaLlanta,
+                                                        medidaLlanta = medidaLlanta,
+                                                        serieLlanta = serieLlanta,
+                                                        motivo = motivo,
+                                                        observaciones = observaciones,
+                                                        nombreTecnico = nombreTecnico,
+                                                        onFinalizado = {
+                                                            guardandoIntervencionLlanta = false
+                                                            mensajeIntervencionLlanta =
+                                                                "Intervención enviada correctamente."
+                                                            pantallaActual = "MENU"
+                                                        },
+                                                        onError = { mensaje ->
+                                                            guardandoIntervencionLlanta = false
+                                                            mensajeIntervencionLlanta = mensaje
+                                                        }
+                                                    )
+                                                }
+                                            },
+
+                                            onVolver = {
+                                                mensajeIntervencionLlanta = ""
+                                                pantallaActual = "MIS_BORRADORES_INTERVENCION"
+                                            }
+                                        )
+                                    }
+                                }
+
+                                "MIS_BORRADORES_INTERVENCION" -> {
+                                    MisBorradoresIntervencionScreen(
+                                        borradores = borradoresIntervencion,
+                                        cargando = cargandoBorradoresIntervencion,
+                                        mensaje = mensajeBorradoresIntervencion,
+                                        onSeleccionarBorrador = { borrador ->
+                                            borradorIntervencionSeleccionado = borrador
+                                            mensajeIntervencionLlanta = ""
+                                            pantallaActual = "EDITAR_BORRADOR_INTERVENCION"
+                                        },
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "HISTORIAL_INTERVENCION" -> {
+                                    HistorialIntervencionScreen(
+                                        registros = historialIntervencion,
+                                        cargando = cargandoHistorialIntervencion,
+                                        mensaje = mensajeHistorialIntervencion,
+                                        onVolver = {
+                                            mensajeHistorialIntervencion = ""
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "REVISION_INTERVENCION" -> {
+                                    RevisionIntervencionScreen(
+                                        registros = registrosRevisionIntervencion,
+                                        cargando = cargandoRevisionIntervencion,
+                                        mensaje = mensajeRevisionIntervencion,
+
+                                        onAprobar = { registro ->
+                                            if (!cargandoRevisionIntervencion) {
+                                                cargandoRevisionIntervencion = true
+                                                mensajeRevisionIntervencion =
+                                                    "Aprobando intervención..."
+
+                                                VulcanizacionRepository.aprobarIntervencionLlanta(
+                                                    idRegistro = registro.id,
+                                                    onFinalizado = {
+                                                        registrosRevisionIntervencion =
+                                                            registrosRevisionIntervencion.filter {
+                                                                it.id != registro.id
+                                                            }
+                                                        cargandoRevisionIntervencion = false
+                                                        mensajeRevisionIntervencion =
+                                                            "Intervención ${registro.codigoActivo} aprobada."
+                                                    },
+                                                    onError = { mensaje ->
+                                                        cargandoRevisionIntervencion = false
+                                                        mensajeRevisionIntervencion = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onDevolver = { registro, motivoDevolucion ->
+                                            if (!cargandoRevisionIntervencion) {
+                                                cargandoRevisionIntervencion = true
+                                                mensajeRevisionIntervencion =
+                                                    "Devolviendo intervención..."
+
+                                                VulcanizacionRepository.devolverIntervencionLlanta(
+                                                    idRegistro = registro.id,
+                                                    motivoDevolucion = motivoDevolucion,
+                                                    onFinalizado = {
+                                                        registrosRevisionIntervencion =
+                                                            registrosRevisionIntervencion.filter {
+                                                                it.id != registro.id
+                                                            }
+                                                        cargandoRevisionIntervencion = false
+                                                        mensajeRevisionIntervencion =
+                                                            "Intervención ${registro.codigoActivo} devuelta para corrección."
+                                                    },
+                                                    onError = { mensaje ->
+                                                        cargandoRevisionIntervencion = false
+                                                        mensajeRevisionIntervencion = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onVolver = {
+                                            mensajeRevisionIntervencion = ""
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
+                                "INTERVENCION_LLANTA" -> {
+                                    IntervencionLlantaScreen(
+                                        activos = activos,
+                                        guardando = guardandoIntervencionLlanta,
+                                        mensaje = mensajeIntervencionLlanta,
+
+                                        onGuardarBorrador = {
+                                                codigoActivo,
+                                                proyecto,
+                                                kilometraje,
+                                                horometro,
+                                                tipoIntervencion,
+                                                posicion,
+                                                huella,
+                                                marcaLlanta,
+                                                medidaLlanta,
+                                                serieLlanta,
+                                                motivo,
+                                                observaciones,
+                                                nombreTecnico ->
+
+                                            if (!guardandoIntervencionLlanta) {
+                                                guardandoIntervencionLlanta = true
+                                                mensajeIntervencionLlanta =
+                                                    "Guardando borrador de intervención..."
+
+                                                VulcanizacionRepository.guardarIntervencionLlanta(
+                                                    codigoActivo = codigoActivo,
+                                                    proyecto = proyecto,
+                                                    kilometraje = kilometraje,
+                                                    horometro = horometro,
+                                                    tipoIntervencion = tipoIntervencion,
+                                                    posicion = posicion,
+                                                    huella = huella,
+                                                    marcaLlanta = marcaLlanta,
+                                                    medidaLlanta = medidaLlanta,
+                                                    serieLlanta = serieLlanta,
+                                                    motivo = motivo,
+                                                    observaciones = observaciones,
+                                                    nombreTecnico = nombreTecnico,
+                                                    estadoRegistro =
+                                                        VulcanizacionRepository.ESTADO_BORRADOR,
+
+                                                    onFinalizado = { idRegistro ->
+                                                        guardandoIntervencionLlanta = false
+                                                        mensajeIntervencionLlanta =
+                                                            "Borrador guardado correctamente. ID: $idRegistro"
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        guardandoIntervencionLlanta = false
+                                                        mensajeIntervencionLlanta = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onEnviar = {
+                                                codigoActivo,
+                                                proyecto,
+                                                kilometraje,
+                                                horometro,
+                                                tipoIntervencion,
+                                                posicion,
+                                                huella,
+                                                marcaLlanta,
+                                                medidaLlanta,
+                                                serieLlanta,
+                                                motivo,
+                                                observaciones,
+                                                nombreTecnico ->
+
+                                            if (!guardandoIntervencionLlanta) {
+                                                guardandoIntervencionLlanta = true
+                                                mensajeIntervencionLlanta =
+                                                    "Enviando intervención de llanta..."
+
+                                                VulcanizacionRepository.guardarIntervencionLlanta(
+                                                    codigoActivo = codigoActivo,
+                                                    proyecto = proyecto,
+                                                    kilometraje = kilometraje,
+                                                    horometro = horometro,
+                                                    tipoIntervencion = tipoIntervencion,
+                                                    posicion = posicion,
+                                                    huella = huella,
+                                                    marcaLlanta = marcaLlanta,
+                                                    medidaLlanta = medidaLlanta,
+                                                    serieLlanta = serieLlanta,
+                                                    motivo = motivo,
+                                                    observaciones = observaciones,
+                                                    nombreTecnico = nombreTecnico,
+                                                    estadoRegistro =
+                                                        VulcanizacionRepository.ESTADO_ENVIADO,
+
+                                                    onFinalizado = { idRegistro ->
+                                                        guardandoIntervencionLlanta = false
+                                                        mensajeIntervencionLlanta =
+                                                            "Intervención enviada correctamente. ID: $idRegistro"
+                                                    },
+
+                                                    onError = { mensaje ->
+                                                        guardandoIntervencionLlanta = false
+                                                        mensajeIntervencionLlanta = mensaje
+                                                    }
+                                                )
+                                            }
+                                        },
+
+                                        onVolver = {
+                                            mensajeIntervencionLlanta = ""
                                             pantallaActual = "MENU"
                                         }
                                     )
@@ -942,6 +1338,187 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 }
 
+                                                "Intervención de llanta" -> {
+                                                    mensajeIntervencionLlanta = ""
+
+                                                    if (activos.isEmpty()) {
+                                                        ImportadorActivos.cargarActivos(
+                                                            onFinalizado = { datos ->
+                                                                activos = datos.map { activo ->
+                                                                    ActivoResumen(
+                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
+                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
+                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
+                                                                        marca = activo["marca"]?.toString().orEmpty(),
+                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
+                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
+                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
+                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
+                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
+                                                                        status = activo["status"]?.toString().orEmpty()
+                                                                    )
+                                                                }.sortedBy { activo ->
+                                                                    activo.codigo
+                                                                }
+
+                                                                pantallaActual = "INTERVENCION_LLANTA"
+                                                            },
+
+                                                            onError = { mensaje ->
+                                                                mensajeIntervencionLlanta = mensaje
+                                                            }
+                                                        )
+                                                    } else {
+                                                        pantallaActual = "INTERVENCION_LLANTA"
+                                                    }
+                                                }
+
+                                                "Borradores de intervención" -> {
+                                                    cargandoBorradoresIntervencion = true
+                                                    mensajeBorradoresIntervencion = ""
+                                                    borradoresIntervencion = emptyList()
+
+                                                    fun cargarBorradoresIntervencion() {
+                                                        VulcanizacionRepository.cargarMisBorradoresIntervencion(
+                                                            onFinalizado = { datos ->
+                                                                borradoresIntervencion = datos.map { registro ->
+                                                                    BorradorIntervencionLlanta(
+                                                                        id = registro["id"]?.toString().orEmpty(),
+                                                                        codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                        proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                        kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                        horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                        tipoIntervencion = registro["tipoIntervencion"]?.toString().orEmpty(),
+                                                                        posicion = registro["posicion"]?.toString().orEmpty(),
+                                                                        huella = (registro["huella"] as? Number)?.toDouble(),
+                                                                        marcaLlanta = registro["marcaLlanta"]?.toString().orEmpty(),
+                                                                        medidaLlanta = registro["medidaLlanta"]?.toString().orEmpty(),
+                                                                        serieLlanta = registro["serieLlanta"]?.toString().orEmpty(),
+                                                                        motivo = registro["motivo"]?.toString().orEmpty(),
+                                                                        observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                        nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                        estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                        motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    )
+                                                                }
+                                                                cargandoBorradoresIntervencion = false
+                                                                pantallaActual = "MIS_BORRADORES_INTERVENCION"
+                                                            },
+                                                            onError = { mensaje ->
+                                                                cargandoBorradoresIntervencion = false
+                                                                mensajeBorradoresIntervencion = mensaje
+                                                                pantallaActual = "MIS_BORRADORES_INTERVENCION"
+                                                            }
+                                                        )
+                                                    }
+
+                                                    if (activos.isEmpty()) {
+                                                        ImportadorActivos.cargarActivos(
+                                                            onFinalizado = { datos ->
+                                                                activos = datos.map { activo ->
+                                                                    ActivoResumen(
+                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
+                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
+                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
+                                                                        marca = activo["marca"]?.toString().orEmpty(),
+                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
+                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
+                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
+                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
+                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
+                                                                        status = activo["status"]?.toString().orEmpty()
+                                                                    )
+                                                                }.sortedBy { it.codigo }
+
+                                                                cargarBorradoresIntervencion()
+                                                            },
+                                                            onError = { mensaje ->
+                                                                cargandoBorradoresIntervencion = false
+                                                                mensajeBorradoresIntervencion = mensaje
+                                                                pantallaActual = "MIS_BORRADORES_INTERVENCION"
+                                                            }
+                                                        )
+                                                    } else {
+                                                        cargarBorradoresIntervencion()
+                                                    }
+                                                }
+
+                                                "Historial de intervenciones" -> {
+                                                    cargandoHistorialIntervencion = true
+                                                    mensajeHistorialIntervencion = ""
+                                                    historialIntervencion = emptyList()
+
+                                                    VulcanizacionRepository.cargarMiHistorialIntervencion(
+                                                        onFinalizado = { datos ->
+                                                            historialIntervencion = datos.map { registro ->
+                                                                RegistroHistorialIntervencion(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    tipoIntervencion = registro["tipoIntervencion"]?.toString().orEmpty(),
+                                                                    posicion = registro["posicion"]?.toString().orEmpty(),
+                                                                    huella = (registro["huella"] as? Number)?.toDouble(),
+                                                                    marcaLlanta = registro["marcaLlanta"]?.toString().orEmpty(),
+                                                                    medidaLlanta = registro["medidaLlanta"]?.toString().orEmpty(),
+                                                                    serieLlanta = registro["serieLlanta"]?.toString().orEmpty(),
+                                                                    motivo = registro["motivo"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                )
+                                                            }
+                                                            cargandoHistorialIntervencion = false
+                                                            pantallaActual = "HISTORIAL_INTERVENCION"
+                                                        },
+                                                        onError = { mensaje ->
+                                                            cargandoHistorialIntervencion = false
+                                                            mensajeHistorialIntervencion = mensaje
+                                                            pantallaActual = "HISTORIAL_INTERVENCION"
+                                                        }
+                                                    )
+                                                }
+
+                                                "Revisión de intervenciones" -> {
+                                                    cargandoRevisionIntervencion = true
+                                                    mensajeRevisionIntervencion = ""
+                                                    registrosRevisionIntervencion = emptyList()
+
+                                                    VulcanizacionRepository.cargarIntervencionesPendientesRevision(
+                                                        onFinalizado = { datos ->
+                                                            registrosRevisionIntervencion = datos.map { registro ->
+                                                                RegistroRevisionIntervencion(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    tipoIntervencion = registro["tipoIntervencion"]?.toString().orEmpty(),
+                                                                    posicion = registro["posicion"]?.toString().orEmpty(),
+                                                                    huella = (registro["huella"] as? Number)?.toDouble(),
+                                                                    marcaLlanta = registro["marcaLlanta"]?.toString().orEmpty(),
+                                                                    medidaLlanta = registro["medidaLlanta"]?.toString().orEmpty(),
+                                                                    serieLlanta = registro["serieLlanta"]?.toString().orEmpty(),
+                                                                    motivo = registro["motivo"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    uidUsuario = registro["uidUsuario"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                )
+                                                            }
+                                                            cargandoRevisionIntervencion = false
+                                                            pantallaActual = "REVISION_INTERVENCION"
+                                                        },
+                                                        onError = { mensaje ->
+                                                            cargandoRevisionIntervencion = false
+                                                            mensajeRevisionIntervencion = mensaje
+                                                            pantallaActual = "REVISION_INTERVENCION"
+                                                        }
+                                                    )
+                                                }
+
                                                 "Revisión de huellas" -> {
                                                     cargandoRevisionHuella = true
                                                     mensajeRevisionHuella = ""
@@ -1087,41 +1664,180 @@ class MainActivity : ComponentActivity() {
                                                     cargandoBorradores = true
                                                     mensajeBorradores = ""
                                                     borradores = emptyList()
+                                                    borradoresHuella = emptyList()
+                                                    borradoresIntervencion = emptyList()
 
-                                                    MantenimientoRepository.cargarMisBorradores(
-                                                        onFinalizado = { datos ->
-                                                            borradores = datos.map { borrador ->
-                                                                BorradorMantenimiento(
-                                                                    id = borrador["id"]?.toString().orEmpty(),
-                                                                    codigoActivo = borrador["codigoActivo"]?.toString().orEmpty(),
-                                                                    tipoServicio = borrador["tipoServicio"]?.toString().orEmpty(),
-                                                                    kilometraje = (borrador["kilometraje"] as? Number)?.toDouble(),
-                                                                    horometro = (borrador["horometro"] as? Number)?.toDouble(),
-                                                                    accionEjecutada = borrador["accionEjecutada"]?.toString().orEmpty(),
-                                                                    observaciones = borrador["observaciones"]?.toString().orEmpty(),
-                                                                    ordenTrabajo = borrador["ordenTrabajo"]?.toString().orEmpty(),
-                                                                    numeroPedido = borrador["numeroPedido"]?.toString().orEmpty(),
-                                                                    estadoRegistro = borrador["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = borrador["motivoDevolucion"]?.toString().orEmpty()
+                                                    fun cargarCentroBorradores() {
+                                                        var cargasPendientes = 3
+
+                                                        fun finalizarCarga() {
+                                                            cargasPendientes--
+
+                                                            if (cargasPendientes <= 0) {
+                                                                cargandoBorradores = false
+                                                                pantallaActual = "MIS_BORRADORES"
+                                                            }
+                                                        }
+
+                                                        fun registrarError(mensaje: String) {
+                                                            mensajeBorradores =
+                                                                if (mensajeBorradores.isBlank()) {
+                                                                    mensaje
+                                                                } else {
+                                                                    mensajeBorradores + "\n" + mensaje
+                                                                }
+
+                                                            finalizarCarga()
+                                                        }
+
+                                                        MantenimientoRepository.cargarMisBorradores(
+                                                            onFinalizado = { datos ->
+                                                                borradores = datos.map { registro ->
+                                                                    BorradorMantenimiento(
+                                                                        id = registro["id"]?.toString().orEmpty(),
+                                                                        codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                        tipoServicio = registro["tipoServicio"]?.toString().orEmpty(),
+                                                                        kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                        horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                        accionEjecutada = registro["accionEjecutada"]?.toString().orEmpty(),
+                                                                        observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                        ordenTrabajo = registro["ordenTrabajo"]?.toString().orEmpty(),
+                                                                        numeroPedido = registro["numeroPedido"]?.toString().orEmpty(),
+                                                                        estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                        motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    )
+                                                                }
+
+                                                                finalizarCarga()
+                                                            },
+                                                            onError = { mensaje ->
+                                                                registrarError(
+                                                                    "Mantenimiento: $mensaje"
                                                                 )
                                                             }
+                                                        )
 
-                                                            cargandoBorradores = false
-                                                            pantallaActual = "MIS_BORRADORES"
-                                                        },
+                                                        VulcanizacionRepository.cargarMisBorradores(
+                                                            onFinalizado = { datos ->
+                                                                borradoresHuella = datos.map { registro ->
+                                                                    BorradorHuella(
+                                                                        id = registro["id"]?.toString().orEmpty(),
+                                                                        codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                        proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                        kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                        horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                        huellas = (1..12).map { posicion ->
+                                                                            (registro["P$posicion"] as? Number)?.toDouble()
+                                                                        },
+                                                                        estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
+                                                                        novedad = registro["novedad"]?.toString().orEmpty(),
+                                                                        nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                        estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                        motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    )
+                                                                }
 
-                                                        onError = { mensaje ->
-                                                            cargandoBorradores = false
-                                                            mensajeBorradores = mensaje
-                                                            pantallaActual = "MIS_BORRADORES"
-                                                        }
-                                                    )
+                                                                finalizarCarga()
+                                                            },
+                                                            onError = { mensaje ->
+                                                                registrarError(
+                                                                    "Toma de huella: $mensaje"
+                                                                )
+                                                            }
+                                                        )
+
+                                                        VulcanizacionRepository.cargarMisBorradoresIntervencion(
+                                                            onFinalizado = { datos ->
+                                                                borradoresIntervencion = datos.map { registro ->
+                                                                    BorradorIntervencionLlanta(
+                                                                        id = registro["id"]?.toString().orEmpty(),
+                                                                        codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                        proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                        kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                        horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                        tipoIntervencion = registro["tipoIntervencion"]?.toString().orEmpty(),
+                                                                        posicion = registro["posicion"]?.toString().orEmpty(),
+                                                                        huella = (registro["huella"] as? Number)?.toDouble(),
+                                                                        marcaLlanta = registro["marcaLlanta"]?.toString().orEmpty(),
+                                                                        medidaLlanta = registro["medidaLlanta"]?.toString().orEmpty(),
+                                                                        serieLlanta = registro["serieLlanta"]?.toString().orEmpty(),
+                                                                        motivo = registro["motivo"]?.toString().orEmpty(),
+                                                                        observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                        nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                        estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                        motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    )
+                                                                }
+
+                                                                finalizarCarga()
+                                                            },
+                                                            onError = { mensaje ->
+                                                                registrarError(
+                                                                    "Intervenciones: $mensaje"
+                                                                )
+                                                            }
+                                                        )
+                                                    }
+
+                                                    if (activos.isEmpty()) {
+                                                        ImportadorActivos.cargarActivos(
+                                                            onFinalizado = { datos ->
+                                                                activos = datos.map { activo ->
+                                                                    ActivoResumen(
+                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
+                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
+                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
+                                                                        marca = activo["marca"]?.toString().orEmpty(),
+                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
+                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
+                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
+                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
+                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
+                                                                        status = activo["status"]?.toString().orEmpty()
+                                                                    )
+                                                                }.sortedBy { it.codigo }
+
+                                                                cargarCentroBorradores()
+                                                            },
+                                                            onError = { mensaje ->
+                                                                cargandoBorradores = false
+                                                                mensajeBorradores = mensaje
+                                                                pantallaActual = "MIS_BORRADORES"
+                                                            }
+                                                        )
+                                                    } else {
+                                                        cargarCentroBorradores()
+                                                    }
                                                 }
 
                                                 "Mi historial" -> {
                                                     cargandoHistorial = true
                                                     mensajeHistorial = ""
                                                     historial = emptyList()
+                                                    historialHuella = emptyList()
+                                                    historialIntervencion = emptyList()
+
+                                                    var cargasPendientes = 3
+
+                                                    fun finalizarHistorial() {
+                                                        cargasPendientes--
+
+                                                        if (cargasPendientes <= 0) {
+                                                            cargandoHistorial = false
+                                                            pantallaActual = "MI_HISTORIAL"
+                                                        }
+                                                    }
+
+                                                    fun registrarErrorHistorial(mensaje: String) {
+                                                        mensajeHistorial =
+                                                            if (mensajeHistorial.isBlank()) {
+                                                                mensaje
+                                                            } else {
+                                                                mensajeHistorial + "\n" + mensaje
+                                                            }
+
+                                                        finalizarHistorial()
+                                                    }
 
                                                     MantenimientoRepository.cargarMiHistorial(
                                                         onFinalizado = { datos ->
@@ -1141,14 +1857,73 @@ class MainActivity : ComponentActivity() {
                                                                 )
                                                             }
 
-                                                            cargandoHistorial = false
-                                                            pantallaActual = "MI_HISTORIAL"
+                                                            finalizarHistorial()
                                                         },
-
                                                         onError = { mensaje ->
-                                                            cargandoHistorial = false
-                                                            mensajeHistorial = mensaje
-                                                            pantallaActual = "MI_HISTORIAL"
+                                                            registrarErrorHistorial(
+                                                                "Mantenimiento: $mensaje"
+                                                            )
+                                                        }
+                                                    )
+
+                                                    VulcanizacionRepository.cargarMiHistorial(
+                                                        onFinalizado = { datos ->
+                                                            historialHuella = datos.map { registro ->
+                                                                RegistroHistorialHuella(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    huellas = (1..12).map { posicion ->
+                                                                        (registro["P$posicion"] as? Number)?.toDouble()
+                                                                    },
+                                                                    estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
+                                                                    novedad = registro["novedad"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                )
+                                                            }
+
+                                                            finalizarHistorial()
+                                                        },
+                                                        onError = { mensaje ->
+                                                            registrarErrorHistorial(
+                                                                "Toma de huella: $mensaje"
+                                                            )
+                                                        }
+                                                    )
+
+                                                    VulcanizacionRepository.cargarMiHistorialIntervencion(
+                                                        onFinalizado = { datos ->
+                                                            historialIntervencion = datos.map { registro ->
+                                                                RegistroHistorialIntervencion(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    tipoIntervencion = registro["tipoIntervencion"]?.toString().orEmpty(),
+                                                                    posicion = registro["posicion"]?.toString().orEmpty(),
+                                                                    huella = (registro["huella"] as? Number)?.toDouble(),
+                                                                    marcaLlanta = registro["marcaLlanta"]?.toString().orEmpty(),
+                                                                    medidaLlanta = registro["medidaLlanta"]?.toString().orEmpty(),
+                                                                    serieLlanta = registro["serieLlanta"]?.toString().orEmpty(),
+                                                                    motivo = registro["motivo"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                )
+                                                            }
+
+                                                            finalizarHistorial()
+                                                        },
+                                                        onError = { mensaje ->
+                                                            registrarErrorHistorial(
+                                                                "Intervenciones: $mensaje"
+                                                            )
                                                         }
                                                     )
                                                 }

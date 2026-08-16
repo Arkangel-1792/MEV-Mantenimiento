@@ -9,6 +9,9 @@ object VulcanizacionRepository {
     private const val COLECCION_TOMAS_HUELLA =
         "tomas_huella"
 
+    private const val COLECCION_INTERVENCIONES_LLANTA =
+        "intervenciones_llanta"
+
     const val ESTADO_BORRADOR = "BORRADOR"
     const val ESTADO_ENVIADO = "ENVIADO"
     const val ESTADO_APROBADO = "APROBADO"
@@ -105,9 +108,12 @@ object VulcanizacionRepository {
         FirebaseFirestore.getInstance()
             .collection(COLECCION_TOMAS_HUELLA)
             .whereEqualTo("uidUsuario", uid)
-            .whereEqualTo(
+            .whereIn(
                 "estadoRegistro",
-                ESTADO_BORRADOR
+                listOf(
+                    ESTADO_BORRADOR,
+                    ESTADO_DEVUELTO
+                )
             )
             .get()
             .addOnSuccessListener { resultado ->
@@ -491,6 +497,474 @@ object VulcanizacionRepository {
 
             if (huellas.none { it.isNotBlank() }) {
                 return "Debes registrar al menos una medida de huella."
+            }
+        }
+
+        return null
+    }
+
+
+    fun guardarIntervencionLlanta(
+        codigoActivo: String,
+        proyecto: String,
+        kilometraje: String,
+        horometro: String,
+        tipoIntervencion: String,
+        posicion: String,
+        huella: String,
+        marcaLlanta: String,
+        medidaLlanta: String,
+        serieLlanta: String,
+        motivo: String,
+        observaciones: String,
+        nombreTecnico: String,
+        estadoRegistro: String,
+        onFinalizado: (idRegistro: String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val usuarioActual = FirebaseAuth.getInstance().currentUser
+
+        if (usuarioActual == null) {
+            onError("No existe una sesión de usuario activa.")
+            return
+        }
+
+        val datos = construirDatosIntervencion(
+            codigoActivo = codigoActivo,
+            proyecto = proyecto,
+            kilometraje = kilometraje,
+            horometro = horometro,
+            tipoIntervencion = tipoIntervencion,
+            posicion = posicion,
+            huella = huella,
+            marcaLlanta = marcaLlanta,
+            medidaLlanta = medidaLlanta,
+            serieLlanta = serieLlanta,
+            motivo = motivo,
+            observaciones = observaciones,
+            nombreTecnico = nombreTecnico,
+            estadoRegistro = estadoRegistro,
+            uidUsuario = usuarioActual.uid,
+            emailUsuario = usuarioActual.email.orEmpty()
+        )
+
+        validarIntervencionLlanta(datos)?.let { error ->
+            onError(error)
+            return
+        }
+
+        datos["fechaCreacion"] = FieldValue.serverTimestamp()
+
+        if (datos["estadoRegistro"] == ESTADO_ENVIADO) {
+            datos["fechaEnvio"] = FieldValue.serverTimestamp()
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_INTERVENCIONES_LLANTA)
+            .add(datos)
+            .addOnSuccessListener { documento ->
+                onFinalizado(documento.id)
+            }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudo guardar la intervención de llanta: " +
+                            error.message.orEmpty()
+                )
+            }
+    }
+
+    fun cargarMisBorradoresIntervencion(
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+        if (uid == null) {
+            onError("No existe una sesión de usuario activa.")
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_INTERVENCIONES_LLANTA)
+            .whereEqualTo("uidUsuario", uid)
+            .whereIn(
+                "estadoRegistro",
+                listOf(
+                    ESTADO_BORRADOR,
+                    ESTADO_DEVUELTO
+                )
+            )
+            .get()
+            .addOnSuccessListener { resultado ->
+                val registros = resultado.documents.map { documento ->
+                    documento.data.orEmpty().toMutableMap().apply {
+                        this["id"] = documento.id
+                    }
+                }
+                onFinalizado(registros)
+            }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudieron cargar los borradores de intervención: " +
+                            error.message.orEmpty()
+                )
+            }
+    }
+
+    fun cargarMiHistorialIntervencion(
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+        if (uid == null) {
+            onError("No existe una sesión de usuario activa.")
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_INTERVENCIONES_LLANTA)
+            .whereEqualTo("uidUsuario", uid)
+            .get()
+            .addOnSuccessListener { resultado ->
+                val registros = resultado.documents
+                    .map { documento ->
+                        documento.data.orEmpty().toMutableMap().apply {
+                            this["id"] = documento.id
+                        }
+                    }
+                    .filter { registro ->
+                        registro["estadoRegistro"]?.toString() in listOf(
+                            ESTADO_ENVIADO,
+                            ESTADO_APROBADO,
+                            ESTADO_DEVUELTO
+                        )
+                    }
+
+                onFinalizado(registros)
+            }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudo cargar el historial de intervenciones: " +
+                            error.message.orEmpty()
+                )
+            }
+    }
+
+    fun actualizarBorradorIntervencion(
+        idRegistro: String,
+        codigoActivo: String,
+        proyecto: String,
+        kilometraje: String,
+        horometro: String,
+        tipoIntervencion: String,
+        posicion: String,
+        huella: String,
+        marcaLlanta: String,
+        medidaLlanta: String,
+        serieLlanta: String,
+        motivo: String,
+        observaciones: String,
+        nombreTecnico: String,
+        onFinalizado: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        actualizarIntervencionLlanta(
+            idRegistro,
+            codigoActivo,
+            proyecto,
+            kilometraje,
+            horometro,
+            tipoIntervencion,
+            posicion,
+            huella,
+            marcaLlanta,
+            medidaLlanta,
+            serieLlanta,
+            motivo,
+            observaciones,
+            nombreTecnico,
+            ESTADO_BORRADOR,
+            onFinalizado,
+            onError
+        )
+    }
+
+    fun enviarBorradorIntervencion(
+        idRegistro: String,
+        codigoActivo: String,
+        proyecto: String,
+        kilometraje: String,
+        horometro: String,
+        tipoIntervencion: String,
+        posicion: String,
+        huella: String,
+        marcaLlanta: String,
+        medidaLlanta: String,
+        serieLlanta: String,
+        motivo: String,
+        observaciones: String,
+        nombreTecnico: String,
+        onFinalizado: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        actualizarIntervencionLlanta(
+            idRegistro,
+            codigoActivo,
+            proyecto,
+            kilometraje,
+            horometro,
+            tipoIntervencion,
+            posicion,
+            huella,
+            marcaLlanta,
+            medidaLlanta,
+            serieLlanta,
+            motivo,
+            observaciones,
+            nombreTecnico,
+            ESTADO_ENVIADO,
+            onFinalizado,
+            onError
+        )
+    }
+
+    private fun actualizarIntervencionLlanta(
+        idRegistro: String,
+        codigoActivo: String,
+        proyecto: String,
+        kilometraje: String,
+        horometro: String,
+        tipoIntervencion: String,
+        posicion: String,
+        huella: String,
+        marcaLlanta: String,
+        medidaLlanta: String,
+        serieLlanta: String,
+        motivo: String,
+        observaciones: String,
+        nombreTecnico: String,
+        nuevoEstado: String,
+        onFinalizado: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val usuarioActual = FirebaseAuth.getInstance().currentUser
+
+        if (usuarioActual == null) {
+            onError("No existe una sesión de usuario activa.")
+            return
+        }
+
+        if (idRegistro.isBlank()) {
+            onError("No se pudo identificar la intervención.")
+            return
+        }
+
+        val datos = construirDatosIntervencion(
+            codigoActivo,
+            proyecto,
+            kilometraje,
+            horometro,
+            tipoIntervencion,
+            posicion,
+            huella,
+            marcaLlanta,
+            medidaLlanta,
+            serieLlanta,
+            motivo,
+            observaciones,
+            nombreTecnico,
+            nuevoEstado,
+            usuarioActual.uid,
+            usuarioActual.email.orEmpty()
+        )
+
+        validarIntervencionLlanta(datos)?.let { error ->
+            onError(error)
+            return
+        }
+
+        if (nuevoEstado == ESTADO_ENVIADO) {
+            datos["fechaEnvio"] = FieldValue.serverTimestamp()
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_INTERVENCIONES_LLANTA)
+            .document(idRegistro)
+            .update(datos)
+            .addOnSuccessListener {
+                onFinalizado()
+            }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudo actualizar la intervención de llanta: " +
+                            error.message.orEmpty()
+                )
+            }
+    }
+
+    fun cargarIntervencionesPendientesRevision(
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_INTERVENCIONES_LLANTA)
+            .whereEqualTo("estadoRegistro", ESTADO_ENVIADO)
+            .get()
+            .addOnSuccessListener { resultado ->
+                val registros = resultado.documents.map { documento ->
+                    documento.data.orEmpty().toMutableMap().apply {
+                        this["id"] = documento.id
+                    }
+                }
+                onFinalizado(registros)
+            }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudieron cargar las intervenciones pendientes: " +
+                            error.message.orEmpty()
+                )
+            }
+    }
+
+    fun aprobarIntervencionLlanta(
+        idRegistro: String,
+        onFinalizado: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (idRegistro.isBlank()) {
+            onError("No se pudo identificar la intervención.")
+            return
+        }
+
+        val datos = hashMapOf<String, Any?>(
+            "estadoRegistro" to ESTADO_APROBADO,
+            "motivoDevolucion" to "",
+            "fechaAprobacion" to FieldValue.serverTimestamp(),
+            "fechaActualizacion" to FieldValue.serverTimestamp()
+        )
+
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_INTERVENCIONES_LLANTA)
+            .document(idRegistro)
+            .update(datos)
+            .addOnSuccessListener { onFinalizado() }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudo aprobar la intervención: " +
+                            error.message.orEmpty()
+                )
+            }
+    }
+
+    fun devolverIntervencionLlanta(
+        idRegistro: String,
+        motivoDevolucion: String,
+        onFinalizado: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (idRegistro.isBlank()) {
+            onError("No se pudo identificar la intervención.")
+            return
+        }
+
+        val motivo = motivoDevolucion.trim()
+
+        if (motivo.isBlank()) {
+            onError("Debes ingresar el motivo de devolución.")
+            return
+        }
+
+        val datos = hashMapOf<String, Any?>(
+            "estadoRegistro" to ESTADO_DEVUELTO,
+            "motivoDevolucion" to motivo,
+            "fechaDevolucion" to FieldValue.serverTimestamp(),
+            "fechaActualizacion" to FieldValue.serverTimestamp()
+        )
+
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_INTERVENCIONES_LLANTA)
+            .document(idRegistro)
+            .update(datos)
+            .addOnSuccessListener { onFinalizado() }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudo devolver la intervención: " +
+                            error.message.orEmpty()
+                )
+            }
+    }
+
+    private fun construirDatosIntervencion(
+        codigoActivo: String,
+        proyecto: String,
+        kilometraje: String,
+        horometro: String,
+        tipoIntervencion: String,
+        posicion: String,
+        huella: String,
+        marcaLlanta: String,
+        medidaLlanta: String,
+        serieLlanta: String,
+        motivo: String,
+        observaciones: String,
+        nombreTecnico: String,
+        estadoRegistro: String,
+        uidUsuario: String,
+        emailUsuario: String
+    ): HashMap<String, Any?> {
+        return hashMapOf(
+            "codigoActivo" to codigoActivo.trim().uppercase(),
+            "proyecto" to proyecto.trim(),
+            "kilometraje" to convertirNumero(kilometraje),
+            "horometro" to convertirNumero(horometro),
+            "tipoIntervencion" to tipoIntervencion.trim().uppercase(),
+            "posicion" to posicion.trim().uppercase(),
+            "huella" to convertirNumero(huella),
+            "marcaLlanta" to marcaLlanta.trim(),
+            "medidaLlanta" to medidaLlanta.trim().uppercase(),
+            "serieLlanta" to serieLlanta.trim().uppercase(),
+            "motivo" to motivo.trim(),
+            "observaciones" to observaciones.trim(),
+            "nombreTecnico" to nombreTecnico.trim(),
+            "estadoRegistro" to estadoRegistro.trim().uppercase(),
+            "uidUsuario" to uidUsuario,
+            "emailUsuario" to emailUsuario,
+            "fechaActualizacion" to FieldValue.serverTimestamp()
+        )
+    }
+
+    private fun validarIntervencionLlanta(
+        datos: Map<String, Any?>
+    ): String? {
+        val codigoActivo = datos["codigoActivo"]?.toString().orEmpty()
+        val tipoIntervencion = datos["tipoIntervencion"]?.toString().orEmpty()
+        val posicion = datos["posicion"]?.toString().orEmpty()
+        val nombreTecnico = datos["nombreTecnico"]?.toString().orEmpty()
+        val estadoRegistro = datos["estadoRegistro"]?.toString().orEmpty()
+
+        if (codigoActivo.isBlank()) {
+            return "Debes seleccionar un activo."
+        }
+
+        if (
+            estadoRegistro != ESTADO_BORRADOR &&
+            estadoRegistro != ESTADO_ENVIADO
+        ) {
+            return "El estado del registro no es válido."
+        }
+
+        if (estadoRegistro == ESTADO_ENVIADO) {
+            if (tipoIntervencion.isBlank()) {
+                return "Debes seleccionar el tipo de intervención."
+            }
+
+            if (posicion.isBlank()) {
+                return "Debes indicar la posición de la llanta."
+            }
+
+            if (nombreTecnico.isBlank()) {
+                return "Debes ingresar el nombre del técnico."
             }
         }
 

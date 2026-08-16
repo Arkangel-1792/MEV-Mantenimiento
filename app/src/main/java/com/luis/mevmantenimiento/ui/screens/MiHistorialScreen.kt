@@ -36,11 +36,18 @@ data class RegistroHistorial(
 
 @Composable
 fun MiHistorialScreen(
-    registros: List<RegistroHistorial>,
+    registrosMantenimiento: List<RegistroHistorial>,
+    registrosHuella: List<RegistroHistorialHuella>,
+    registrosIntervencion: List<RegistroHistorialIntervencion>,
     cargando: Boolean,
     mensaje: String,
     onVolver: () -> Unit
 ) {
+    val total =
+        registrosMantenimiento.size +
+                registrosHuella.size +
+                registrosIntervencion.size
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,13 +64,12 @@ fun MiHistorialScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Consulta el estado de los registros que has enviado.",
+                text = "Consulta mantenimientos, tomas de huella e intervenciones enviadas.",
                 style = MaterialTheme.typography.bodyMedium
             )
 
             if (mensaje.isNotBlank()) {
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Text(
                     text = mensaje,
                     style = MaterialTheme.typography.bodyMedium
@@ -72,24 +78,20 @@ fun MiHistorialScreen(
 
             if (cargando) {
                 Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Cargando historial...",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("Cargando historial...")
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Registros encontrados: ${registros.size}",
+                text = "Registros encontrados: $total",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (!cargando && registros.isEmpty()) {
+        if (!cargando && total == 0) {
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -111,13 +113,52 @@ fun MiHistorialScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(
-                    items = registros,
-                    key = { registro ->
-                        registro.id
+                if (registrosMantenimiento.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Mantenimiento",
+                            style = MaterialTheme.typography.titleLarge
+                        )
                     }
-                ) { registro ->
-                    RegistroHistorialCard(registro)
+
+                    items(
+                        items = registrosMantenimiento,
+                        key = { "M_${it.id}" }
+                    ) { registro ->
+                        TarjetaMantenimiento(registro)
+                    }
+                }
+
+                if (registrosHuella.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Toma de huella",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+
+                    items(
+                        items = registrosHuella,
+                        key = { "H_${it.id}" }
+                    ) { registro ->
+                        TarjetaHuella(registro)
+                    }
+                }
+
+                if (registrosIntervencion.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Intervenciones de llanta",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+
+                    items(
+                        items = registrosIntervencion,
+                        key = { "I_${it.id}" }
+                    ) { registro ->
+                        TarjetaIntervencion(registro)
+                    }
                 }
             }
         }
@@ -126,11 +167,7 @@ fun MiHistorialScreen(
             onClick = onVolver,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    start = 20.dp,
-                    end = 20.dp,
-                    bottom = 16.dp
-                )
+                .padding(20.dp)
         ) {
             Text("Volver al menú principal")
         }
@@ -138,11 +175,9 @@ fun MiHistorialScreen(
 }
 
 @Composable
-private fun RegistroHistorialCard(
+private fun TarjetaMantenimiento(
     registro: RegistroHistorial
 ) {
-    val colorEstado = obtenerColorEstado(registro.estadoRegistro)
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -158,96 +193,189 @@ private fun RegistroHistorialCard(
                 style = MaterialTheme.typography.titleMedium
             )
 
+            EstadoHistorial(registro.estadoRegistro)
+
+            Text("Servicio: ${registro.tipoServicio}")
             Text(
-                text = "Estado: ${registro.estadoRegistro}",
-                style = MaterialTheme.typography.labelLarge,
-                color = colorEstado
+                "Kilometraje: ${registro.kilometraje ?: "Sin registro"} · " +
+                        "Horómetro: ${registro.horometro ?: "Sin registro"}"
             )
 
-            Text(
-                text = "Servicio: ${registro.tipoServicio}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Text(
-                text = obtenerLecturaHistorial(registro),
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Text(
-                text = if (registro.accionEjecutada.isBlank()) {
-                    "Acción: Sin registrar"
-                } else {
-                    "Acción: ${registro.accionEjecutada}"
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
+            if (registro.accionEjecutada.isNotBlank()) {
+                Text("Acción: ${registro.accionEjecutada}")
+            }
 
             if (registro.observaciones.isNotBlank()) {
-                Text(
-                    text = "Observaciones: ${registro.observaciones}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("Observaciones: ${registro.observaciones}")
             }
 
             if (registro.ordenTrabajo.isNotBlank()) {
-                Text(
-                    text = "Orden de trabajo: ${registro.ordenTrabajo}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("Orden de trabajo: ${registro.ordenTrabajo}")
             }
 
             if (registro.numeroPedido.isNotBlank()) {
-                Text(
-                    text = "Pedido: ${registro.numeroPedido}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("Pedido: ${registro.numeroPedido}")
             }
 
-            if (
-                registro.estadoRegistro == "DEVUELTO" &&
-                registro.motivoDevolucion.isNotBlank()
-            ) {
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Motivo de devolución:",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-
-                Text(
-                    text = registro.motivoDevolucion,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
+            MotivoDevuelto(
+                estado = registro.estadoRegistro,
+                motivo = registro.motivoDevolucion
+            )
         }
     }
 }
 
 @Composable
-private fun obtenerColorEstado(
-    estado: String
-): Color {
-    return when (estado) {
-        "APROBADO" -> Color(0xFF2E7D32)
-        "DEVUELTO" -> MaterialTheme.colorScheme.error
-        "ENVIADO" -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurface
+private fun TarjetaHuella(
+    registro: RegistroHistorialHuella
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                text = registro.codigoActivo,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            EstadoHistorial(registro.estadoRegistro)
+
+            if (registro.proyecto.isNotBlank()) {
+                Text("Proyecto: ${registro.proyecto}")
+            }
+
+            Text(
+                "Kilometraje: ${registro.kilometraje ?: "Sin registro"} · " +
+                        "Horómetro: ${registro.horometro ?: "Sin registro"}"
+            )
+
+            Text(
+                "Mediciones registradas: ${
+                    registro.huellas.count { it != null }
+                }"
+            )
+
+            if (registro.estadoGeneral.isNotBlank()) {
+                Text("Estado general: ${registro.estadoGeneral}")
+            }
+
+            if (registro.novedad.isNotBlank()) {
+                Text("Novedad: ${registro.novedad}")
+            }
+
+            if (registro.nombreTecnico.isNotBlank()) {
+                Text("Técnico: ${registro.nombreTecnico}")
+            }
+
+            MotivoDevuelto(
+                estado = registro.estadoRegistro,
+                motivo = registro.motivoDevolucion
+            )
+        }
     }
 }
 
-private fun obtenerLecturaHistorial(
-    registro: RegistroHistorial
-): String {
-    val kilometraje = registro.kilometraje?.let {
-        "$it km"
-    } ?: "Sin registro"
+@Composable
+private fun TarjetaIntervencion(
+    registro: RegistroHistorialIntervencion
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                text = registro.codigoActivo,
+                style = MaterialTheme.typography.titleMedium
+            )
 
-    val horometro = registro.horometro?.let {
-        "$it h"
-    } ?: "Sin registro"
+            EstadoHistorial(registro.estadoRegistro)
 
-    return "Kilometraje: $kilometraje · Horómetro: $horometro"
+            Text("Intervención: ${registro.tipoIntervencion}")
+            Text("Posición: ${registro.posicion.ifBlank { "Sin registrar" }}")
+            Text(
+                "Huella: ${
+                    registro.huella?.let { "$it mm" } ?: "Sin registrar"
+                }"
+            )
+
+            if (registro.marcaLlanta.isNotBlank()) {
+                Text("Marca: ${registro.marcaLlanta}")
+            }
+
+            if (registro.medidaLlanta.isNotBlank()) {
+                Text("Medida: ${registro.medidaLlanta}")
+            }
+
+            if (registro.serieLlanta.isNotBlank()) {
+                Text("Serie: ${registro.serieLlanta}")
+            }
+
+            if (registro.motivo.isNotBlank()) {
+                Text("Motivo: ${registro.motivo}")
+            }
+
+            if (registro.observaciones.isNotBlank()) {
+                Text("Observaciones: ${registro.observaciones}")
+            }
+
+            if (registro.nombreTecnico.isNotBlank()) {
+                Text("Técnico: ${registro.nombreTecnico}")
+            }
+
+            MotivoDevuelto(
+                estado = registro.estadoRegistro,
+                motivo = registro.motivoDevolucion
+            )
+        }
+    }
+}
+
+@Composable
+private fun EstadoHistorial(
+    estado: String
+) {
+    Text(
+        text = "Estado: $estado",
+        style = MaterialTheme.typography.labelLarge,
+        color = when (estado.uppercase()) {
+            "APROBADO" -> Color(0xFF2E7D32)
+            "DEVUELTO" -> MaterialTheme.colorScheme.error
+            "ENVIADO" -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+    )
+}
+
+@Composable
+private fun MotivoDevuelto(
+    estado: String,
+    motivo: String
+) {
+    if (
+        estado.uppercase() == "DEVUELTO" &&
+        motivo.isNotBlank()
+    ) {
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Motivo de devolución:",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.error
+        )
+        Text(
+            text = motivo,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
 }
