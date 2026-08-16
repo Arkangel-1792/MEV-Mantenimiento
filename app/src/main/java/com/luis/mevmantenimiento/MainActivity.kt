@@ -76,6 +76,8 @@ import com.luis.mevmantenimiento.ui.screens.ReportesScreen
 import com.luis.mevmantenimiento.ui.screens.ReporteResumen
 import com.luis.mevmantenimiento.data.ReportesRepository
 import com.luis.mevmantenimiento.data.ExportadorReportes
+import com.luis.mevmantenimiento.data.ReporteDatos
+import com.luis.mevmantenimiento.data.FiltrosReporte
 
 class MainActivity : ComponentActivity() {
 
@@ -260,6 +262,14 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf<ReporteResumen?>(null)
                 }
 
+                var reporteCompleto by remember {
+                    mutableStateOf<ReporteDatos?>(null)
+                }
+
+                var reporteBase by remember {
+                    mutableStateOf<ReporteDatos?>(null)
+                }
+
                 var cargandoReportes by remember {
                     mutableStateOf(false)
                 }
@@ -274,14 +284,14 @@ class MainActivity : ComponentActivity() {
                             "application/pdf"
                         )
                     ) { uri ->
-                        val resumen = resumenReportes
+                        val reporte = reporteCompleto
 
-                        if (uri != null && resumen != null) {
+                        if (uri != null && reporte != null) {
                             try {
                                 contentResolver.openOutputStream(uri)?.use { salida ->
                                     ExportadorReportes.exportarPdf(
                                         outputStream = salida,
-                                        resumen = resumen
+                                        reporte = reporte
                                     )
                                 }
 
@@ -300,14 +310,14 @@ class MainActivity : ComponentActivity() {
                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
                     ) { uri ->
-                        val resumen = resumenReportes
+                        val reporte = reporteCompleto
 
-                        if (uri != null && resumen != null) {
+                        if (uri != null && reporte != null) {
                             try {
                                 contentResolver.openOutputStream(uri)?.use { salida ->
                                     ExportadorReportes.exportarExcel(
                                         outputStream = salida,
-                                        resumen = resumen
+                                        reporte = reporte
                                     )
                                 }
 
@@ -590,6 +600,33 @@ class MainActivity : ComponentActivity() {
                                         resumen = resumenReportes,
                                         cargando = cargandoReportes,
                                         mensaje = mensajeReportes,
+
+                                        onAplicarFiltros = { filtros ->
+                                            val baseActual = reporteBase
+
+                                            if (baseActual != null) {
+                                                val filtrado =
+                                                    ReportesRepository.aplicarFiltros(
+                                                        reporteOriginal = baseActual,
+                                                        filtros = filtros
+                                                    )
+
+                                                reporteCompleto = filtrado
+                                                resumenReportes = filtrado.resumen
+                                                mensajeReportes =
+                                                    "Filtros aplicados."
+                                            }
+                                        },
+
+                                        onLimpiarFiltros = {
+                                            val baseActual = reporteBase
+
+                                            if (baseActual != null) {
+                                                reporteCompleto = baseActual
+                                                resumenReportes = baseActual.resumen
+                                                mensajeReportes = ""
+                                            }
+                                        },
 
                                         onExportarPdf = {
                                             exportarPdfLauncher.launch(
@@ -2190,9 +2227,13 @@ class MainActivity : ComponentActivity() {
                                                 mensajeReportes = "Cargando indicadores..."
                                                 resumenReportes = null
 
-                                                ReportesRepository.cargarResumen(
-                                                    onFinalizado = { resumen ->
-                                                        resumenReportes = resumen
+                                                reporteCompleto = null
+
+                                                ReportesRepository.cargarReporteCompleto(
+                                                    onFinalizado = { reporte ->
+                                                        reporteBase = reporte
+                                                        reporteCompleto = reporte
+                                                        resumenReportes = reporte.resumen
                                                         cargandoReportes = false
                                                         mensajeReportes = ""
                                                         pantallaActual = "REPORTES"

@@ -15,23 +15,59 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.luis.mevmantenimiento.data.FiltrosReporte
 
 @Composable
 fun ReportesScreen(
     resumen: ReporteResumen?,
     cargando: Boolean,
     mensaje: String,
+    onAplicarFiltros: (FiltrosReporte) -> Unit,
+    onLimpiarFiltros: () -> Unit,
     onExportarPdf: () -> Unit,
     onExportarExcel: () -> Unit,
     onVolver: () -> Unit
 ) {
+    var mostrarFiltros by remember {
+        mutableStateOf(false)
+    }
+
+    var proyecto by remember {
+        mutableStateOf("")
+    }
+
+    var activo by remember {
+        mutableStateOf("")
+    }
+
+    var tecnico by remember {
+        mutableStateOf("")
+    }
+
+    var estado by remember {
+        mutableStateOf("")
+    }
+
+    var fechaDesde by remember {
+        mutableStateOf("")
+    }
+
+    var fechaHasta by remember {
+        mutableStateOf("")
+    }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -101,6 +137,175 @@ fun ReportesScreen(
                 ) {
                     item {
                         EncabezadoReportes()
+                    }
+
+                    item {
+                        OutlinedButton(
+                            onClick = {
+                                mostrarFiltros = !mostrarFiltros
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (mostrarFiltros) {
+                                    "Ocultar filtros"
+                                } else {
+                                    "Mostrar filtros"
+                                }
+                            )
+                        }
+                    }
+
+                    if (mostrarFiltros) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor =
+                                        MaterialTheme.colorScheme.surfaceContainer
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = "Filtros",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+
+                                    OutlinedTextField(
+                                        value = proyecto,
+                                        onValueChange = {
+                                            proyecto = it
+                                        },
+                                        label = {
+                                            Text("Proyecto")
+                                        },
+                                        placeholder = {
+                                            Text("Ej.: Villonaco")
+                                        },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = activo,
+                                        onValueChange = {
+                                            activo = it
+                                        },
+                                        label = {
+                                            Text("Activo")
+                                        },
+                                        placeholder = {
+                                            Text("Ej.: VVOLQ0100")
+                                        },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = tecnico,
+                                        onValueChange = {
+                                            tecnico = it
+                                        },
+                                        label = {
+                                            Text("Técnico / usuario")
+                                        },
+                                        placeholder = {
+                                            Text("Nombre o correo")
+                                        },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = estado,
+                                        onValueChange = {
+                                            estado = it.uppercase()
+                                        },
+                                        label = {
+                                            Text("Estado")
+                                        },
+                                        placeholder = {
+                                            Text("ENVIADO, APROBADO o DEVUELTO")
+                                        },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement =
+                                            Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = fechaDesde,
+                                            onValueChange = {
+                                                fechaDesde = it
+                                            },
+                                            label = {
+                                                Text("Desde")
+                                            },
+                                            placeholder = {
+                                                Text("dd/MM/yyyy")
+                                            },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = fechaHasta,
+                                            onValueChange = {
+                                                fechaHasta = it
+                                            },
+                                            label = {
+                                                Text("Hasta")
+                                            },
+                                            placeholder = {
+                                                Text("dd/MM/yyyy")
+                                            },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            onAplicarFiltros(
+                                                FiltrosReporte(
+                                                    proyecto = proyecto,
+                                                    activo = activo,
+                                                    tecnico = tecnico,
+                                                    estado = estado,
+                                                    fechaDesde = fechaDesde,
+                                                    fechaHasta = fechaHasta
+                                                )
+                                            )
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Aplicar filtros")
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            proyecto = ""
+                                            activo = ""
+                                            tecnico = ""
+                                            estado = ""
+                                            fechaDesde = ""
+                                            fechaHasta = ""
+                                            onLimpiarFiltros()
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Limpiar filtros")
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     if (mensaje.isNotBlank()) {
@@ -223,10 +428,6 @@ fun ReportesScreen(
                                 MaterialTheme.colorScheme.onSurface
                             }
                         )
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
 
