@@ -1,5 +1,7 @@
 package com.luis.mevmantenimiento.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +49,7 @@ fun TomaHuellaScreen(
         estadoGeneral: String,
         novedad: String,
         nombreTecnico: String,
+        fotoUri: String,
         estadoRegistro: String
     ) -> Unit,
     onVolver: () -> Unit
@@ -81,6 +84,16 @@ fun TomaHuellaScreen(
 
     var nombreTecnico by remember {
         mutableStateOf("")
+    }
+
+    var fotoUri by remember {
+        mutableStateOf("")
+    }
+
+    val selectorFoto = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        fotoUri = uri?.toString().orEmpty()
     }
 
     var estadoRegistro by remember {
@@ -138,6 +151,7 @@ fun TomaHuellaScreen(
             estadoGeneral,
             novedad,
             nombreTecnico,
+            fotoUri,
             estado
         )
     }
@@ -502,6 +516,30 @@ fun TomaHuellaScreen(
                 singleLine = true
             )
 
+            OutlinedButton(
+                onClick = {
+                    selectorFoto.launch("image/*")
+                },
+                enabled = !guardando,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    if (fotoUri.isBlank()) {
+                        "Adjuntar fotografía"
+                    } else {
+                        "Cambiar fotografía"
+                    }
+                )
+            }
+
+            if (fotoUri.isNotBlank()) {
+                Text(
+                    text = "Fotografía seleccionada.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
             Text(
                 text = "Estado del registro",
                 style = MaterialTheme.typography.titleMedium
@@ -572,6 +610,7 @@ fun TomaHuellaScreen(
                         estadoGeneral,
                         novedad,
                         nombreTecnico,
+                        fotoUri,
                         estadoRegistro
                     )
                 },

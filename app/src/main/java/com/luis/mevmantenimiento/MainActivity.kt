@@ -954,6 +954,7 @@ class MainActivity : ComponentActivity() {
                                                 estadoGeneral,
                                                 novedad,
                                                 nombreTecnico,
+                                                fotoUri,
                                                 estadoRegistro ->
 
                                             if (!guardandoHuella) {
@@ -973,6 +974,7 @@ class MainActivity : ComponentActivity() {
                                                     estadoGeneral = estadoGeneral,
                                                     novedad = novedad,
                                                     nombreTecnico = nombreTecnico,
+                                                    fotoUri = fotoUri,
                                                     estadoRegistro = estadoRegistro,
                                                     onFinalizado = { idRegistro ->
                                                         guardandoHuella = false

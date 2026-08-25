@@ -1,8 +1,10 @@
 package com.luis.mevmantenimiento.data
 
+import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 object VulcanizacionRepository {
 
@@ -26,6 +28,7 @@ object VulcanizacionRepository {
         estadoGeneral: String,
         novedad: String,
         nombreTecnico: String,
+        fotoUri: String,
         estadoRegistro: String,
         onFinalizado: (idRegistro: String) -> Unit,
         onError: (String) -> Unit
@@ -79,15 +82,51 @@ object VulcanizacionRepository {
                 FieldValue.serverTimestamp()
         }
 
-        FirebaseFirestore.getInstance()
+        val documento = FirebaseFirestore.getInstance()
             .collection(COLECCION_TOMAS_HUELLA)
-            .add(datos)
-            .addOnSuccessListener { documento ->
-                onFinalizado(documento.id)
+            .document()
+
+        fun guardarDatos() {
+            documento.set(datos)
+                .addOnSuccessListener {
+                    onFinalizado(documento.id)
+                }
+                .addOnFailureListener { error ->
+                    onError(
+                        "No se pudo guardar la toma de huella: " +
+                                error.message.orEmpty()
+                    )
+                }
+        }
+
+        if (fotoUri.isBlank()) {
+            guardarDatos()
+            return
+        }
+
+        val rutaFoto =
+            "evidencias_huellas/${usuarioActual.uid}/${documento.id}.jpg"
+
+        val referenciaFoto = FirebaseStorage.getInstance()
+            .reference
+            .child(rutaFoto)
+
+        referenciaFoto.putFile(Uri.parse(fotoUri))
+            .continueWithTask { tarea ->
+                if (!tarea.isSuccessful) {
+                    throw tarea.exception
+                        ?: IllegalStateException("No se pudo cargar la fotografía.")
+                }
+                referenciaFoto.downloadUrl
+            }
+            .addOnSuccessListener { url ->
+                datos["fotoUrl"] = url.toString()
+                datos["fotoStoragePath"] = rutaFoto
+                guardarDatos()
             }
             .addOnFailureListener { error ->
                 onError(
-                    "No se pudo guardar la toma de huella: " +
+                    "No se pudo cargar la fotografía: " +
                             error.message.orEmpty()
                 )
             }

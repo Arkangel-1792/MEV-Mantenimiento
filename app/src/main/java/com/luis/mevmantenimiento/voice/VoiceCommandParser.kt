@@ -418,7 +418,7 @@ object VoiceCommandParser {
         }
 
         val coincidencia = Regex(
-            """(?:posicion|p)\s*(\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:valor|es|en)?\s*(.+)"""
+            """(?:posicion|p)\s*(\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\b\s+(?:(?:valor|es|en)\s+)?(.+)"""
         ).find(texto)
             ?: return null
 
