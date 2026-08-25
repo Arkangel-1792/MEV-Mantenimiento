@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +74,29 @@ fun NuevoMantenimientoScreen(
         it.codigo.equals(codigoActivo.trim(), ignoreCase = true)
     }
 
+    fun servicioPermitido(
+        activo: ActivoResumen,
+        servicio: String
+    ): Boolean {
+        return when (servicio.uppercase()) {
+            "PREVENTIVO" -> activo.permitePreventivo
+            "CORRECTIVO" -> activo.permiteCorrectivo
+            else -> false
+        }
+    }
+
+    LaunchedEffect(activoEncontrado?.codigo) {
+        val activo = activoEncontrado ?: return@LaunchedEffect
+
+        if (!servicioPermitido(activo, tipoServicio)) {
+            tipoServicio = if (activo.permitePreventivo) {
+                "PREVENTIVO"
+            } else {
+                "CORRECTIVO"
+            }
+        }
+    }
+
     fun guardarDesdeVoz(
         enviar: Boolean
     ) {
@@ -82,6 +106,12 @@ fun NuevoMantenimientoScreen(
 
         if (activoActual == null) {
             mensajeVoz = "Primero debes seleccionar un activo válido."
+            return
+        }
+
+        if (!servicioPermitido(activoActual, tipoServicio)) {
+            mensajeVoz =
+                "El activo no permite mantenimiento ${tipoServicio.lowercase()}."
             return
         }
 
@@ -153,8 +183,16 @@ fun NuevoMantenimientoScreen(
             }
 
             is VoiceCommand.ActualizarTipoServicio -> {
-                tipoServicio = comando.valor
-                "Tipo de servicio: ${comando.valor}."
+                val activo = activoEncontrado
+                if (
+                    activo != null &&
+                    !servicioPermitido(activo, comando.valor)
+                ) {
+                    "El activo no permite mantenimiento ${comando.valor.lowercase()}."
+                } else {
+                    tipoServicio = comando.valor
+                    "Tipo de servicio: ${comando.valor}."
+                }
             }
 
             is VoiceCommand.ActualizarKilometraje -> {
@@ -339,7 +377,8 @@ fun NuevoMantenimientoScreen(
                     },
                     label = {
                         Text("Preventivo")
-                    }
+                    },
+                    enabled = activoEncontrado?.permitePreventivo != false
                 )
 
                 FilterChip(
@@ -349,7 +388,8 @@ fun NuevoMantenimientoScreen(
                     },
                     label = {
                         Text("Correctivo")
-                    }
+                    },
+                    enabled = activoEncontrado?.permiteCorrectivo != false
                 )
             }
 
@@ -455,6 +495,7 @@ fun NuevoMantenimientoScreen(
                     )
                 },
                 enabled = activoEncontrado != null &&
+                        servicioPermitido(activoEncontrado, tipoServicio) &&
                         !guardandoMantenimiento,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -475,6 +516,7 @@ fun NuevoMantenimientoScreen(
                     )
                 },
                 enabled = activoEncontrado != null &&
+                        servicioPermitido(activoEncontrado, tipoServicio) &&
                         accionEjecutada.isNotBlank() &&
                         !guardandoMantenimiento,
                 modifier = Modifier.fillMaxWidth()

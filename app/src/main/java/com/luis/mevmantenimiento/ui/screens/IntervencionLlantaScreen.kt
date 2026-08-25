@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,6 +93,19 @@ fun IntervencionLlantaScreen(
         )
     }
 
+    val cantidadPosiciones = cantidadPosicionesDelActivo(activoEncontrado)
+
+    fun posicionValida(): Boolean {
+        val numero = posicion.toIntOrNull() ?: return false
+        return numero in 1..cantidadPosiciones
+    }
+
+    LaunchedEffect(activoEncontrado?.codigo) {
+        if (posicion.isNotBlank() && !posicionValida()) {
+            posicion = ""
+        }
+    }
+
     fun guardarDesdeVoz(
         enviar: Boolean
     ) {
@@ -118,6 +132,12 @@ fun IntervencionLlantaScreen(
             if (posicion.isBlank()) {
                 mensajeVoz =
                     "Debes indicar la posición."
+                return
+            }
+
+            if (!posicionValida()) {
+                mensajeVoz =
+                    "La posición debe estar entre 1 y $cantidadPosiciones."
                 return
             }
 
@@ -221,8 +241,15 @@ fun IntervencionLlantaScreen(
             }
 
             is VoiceCommand.ActualizarPosicionLlanta -> {
-                posicion = comando.posicion.toString()
-                "Posición: ${comando.posicion}."
+                if (
+                    activoEncontrado != null &&
+                    comando.posicion !in 1..cantidadPosiciones
+                ) {
+                    "La posición debe estar entre 1 y $cantidadPosiciones."
+                } else {
+                    posicion = comando.posicion.toString()
+                    "Posición: ${comando.posicion}."
+                }
             }
 
             is VoiceCommand.ActualizarHuellaLlanta -> {
@@ -496,7 +523,7 @@ fun IntervencionLlantaScreen(
             OutlinedTextField(
                 value = posicion,
                 onValueChange = {
-                    posicion = it
+                    posicion = it.filter(Char::isDigit).take(2)
                 },
                 modifier =
                     Modifier.fillMaxWidth(),
@@ -504,7 +531,13 @@ fun IntervencionLlantaScreen(
                     Text("Posición")
                 },
                 supportingText = {
-                    Text("Ejemplo: 3")
+                    Text(
+                        if (cantidadPosiciones > 0) {
+                            "Posiciones disponibles: 1 a $cantidadPosiciones"
+                        } else {
+                            "Selecciona primero un activo"
+                        }
+                    )
                 },
                 keyboardOptions =
                     KeyboardOptions(
@@ -638,6 +671,7 @@ fun IntervencionLlantaScreen(
                 },
                 enabled =
                     activoEncontrado != null &&
+                            (posicion.isBlank() || posicionValida()) &&
                             !guardando,
                 modifier =
                     Modifier.fillMaxWidth()
@@ -666,7 +700,7 @@ fun IntervencionLlantaScreen(
                 enabled =
                     activoEncontrado != null &&
                             tipoIntervencion.isNotBlank() &&
-                            posicion.isNotBlank() &&
+                            posicionValida() &&
                             nombreTecnico.isNotBlank() &&
                             !guardando,
                 modifier =

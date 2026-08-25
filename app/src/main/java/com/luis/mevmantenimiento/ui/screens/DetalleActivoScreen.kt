@@ -54,9 +54,20 @@ fun DetalleActivoScreen(
                 CampoDetalle("Tipo", activo.tipo)
                 CampoDetalle("Marca", activo.marca)
                 CampoDetalle("Modelo", activo.modelo)
+                CampoDetalle("Serie / chasis", activo.serie)
+                CampoDetalle(
+                    "Año",
+                    activo.anioFabricacion?.toString().orEmpty()
+                )
+                CampoDetalle("Matrícula", activo.matricula)
                 CampoDetalle("Indicador", activo.indicador)
+                CampoDetalle(
+                    "Intervalo",
+                    activo.intervalo?.toString().orEmpty()
+                )
                 CampoDetalle("Ubicación actual", activo.ubicacionActual)
                 CampoDetalle("Estado", activo.status)
+                CampoDetalle("Telemetría", activo.telemetria)
 
                 CampoDetalle(
                     "Horómetro",
@@ -67,6 +78,22 @@ fun DetalleActivoScreen(
                     "Kilometraje",
                     activo.kilometraje?.let { "$it km" } ?: "Sin registro"
                 )
+
+                CampoDetalle(
+                    "Vulcanización",
+                    if (activo.aplicaVulcanizacion) "Sí" else "No"
+                )
+
+                if (activo.aplicaVulcanizacion) {
+                    CampoDetalle(
+                        "Posiciones de llanta",
+                        cantidadPosicionesDelActivo(activo).toString()
+                    )
+                    CampoDetalle(
+                        "Configuración",
+                        activo.configuracionRuedas
+                    )
+                }
             }
         }
 

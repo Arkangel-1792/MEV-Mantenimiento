@@ -381,48 +381,7 @@ private fun obtenerCantidadPosicionesBorrador(
     if (activo == null) {
         return 12
     }
-
-    val subtipo =
-        activo.subtipo.trim().uppercase()
-
-    val tipo =
-        activo.tipo.trim().uppercase()
-
-    val marca =
-        activo.marca.trim().uppercase()
-
-    val codigo =
-        activo.codigo.trim().uppercase()
-
-    return when {
-        subtipo.contains("CAMIONETA") -> 4
-
-        (
-                subtipo.contains("VOLQUETA") ||
-                        tipo.contains("VOLQUETA") ||
-                        codigo.startsWith("VVOLQ")
-                ) &&
-                marca.contains("SHACMAN") -> 12
-
-        subtipo.contains("VOLQUETA") ||
-                tipo.contains("VOLQUETA") ||
-                codigo.startsWith("VVOLQ") -> 10
-
-        subtipo.contains("CAMION") ||
-                subtipo.contains("CAMIÓN") ||
-                subtipo.contains("CABEZAL") ||
-                subtipo.contains("TANQUERO") -> 6
-
-        subtipo.contains("RODILLO") ||
-                subtipo.contains("COMPACTADOR") -> 2
-
-        subtipo.contains("RETROEXCAVADORA") ||
-                subtipo.contains("MINICARGADORA") -> 4
-
-        subtipo.contains("MOTONIVELADORA") -> 6
-
-        else -> 4
-    }
+    return cantidadPosicionesDelActivo(activo)
 }
 
 private fun limpiarPosicionesNoAplicables(
