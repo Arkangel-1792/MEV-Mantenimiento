@@ -384,7 +384,7 @@ object MantenimientoRepository {
             return
         }
 
-        val cambios = mapOf<String, Any>(
+        val cambios = mapOf<String, Any?>(
             "estadoRegistro" to ESTADO_DEVUELTO,
             "motivoDevolucion" to motivoNormalizado,
             "fechaDevolucion" to
@@ -514,13 +514,13 @@ object MantenimientoRepository {
             return
         }
 
-        val cambios = mapOf<String, Any>(
+        val cambios = mapOf<String, Any?>(
             "tipoServicio" to
                     tipoServicio.trim().uppercase(),
             "kilometraje" to
-                    (convertirNumero(kilometraje) ?: 0.0),
+                    convertirNumero(kilometraje),
             "horometro" to
-                    (convertirNumero(horometro) ?: 0.0),
+                    convertirNumero(horometro),
             "accionEjecutada" to
                     accionEjecutada.trim(),
             "observaciones" to

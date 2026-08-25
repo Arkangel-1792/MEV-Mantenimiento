@@ -59,6 +59,16 @@ fun EditarBorradorIntervencionScreen(
     var nombreTecnico by remember { mutableStateOf(borrador.nombreTecnico) }
     var mensajeVoz by remember { mutableStateOf("") }
 
+    val activoEncontrado = activos.firstOrNull {
+        it.codigo.equals(codigoActivo.trim(), ignoreCase = true)
+    }
+    val cantidadPosiciones = cantidadPosicionesDelActivo(activoEncontrado)
+
+    fun posicionValida(): Boolean {
+        val numero = posicion.toIntOrNull() ?: return false
+        return numero in 1..cantidadPosiciones
+    }
+
     fun aplicar(comando: VoiceCommand): String {
         return when (comando) {
             is VoiceCommand.SeleccionarActivo -> {
@@ -91,8 +101,15 @@ fun EditarBorradorIntervencionScreen(
                 "Intervención actualizada."
             }
             is VoiceCommand.ActualizarPosicionLlanta -> {
-                posicion = comando.posicion.toString()
-                "Posición actualizada."
+                if (
+                    activoEncontrado != null &&
+                    comando.posicion !in 1..cantidadPosiciones
+                ) {
+                    "La posición debe estar entre 1 y $cantidadPosiciones."
+                } else {
+                    posicion = comando.posicion.toString()
+                    "Posición actualizada."
+                }
             }
             is VoiceCommand.ActualizarHuellaLlanta -> {
                 huella = comando.valor
@@ -190,7 +207,26 @@ fun EditarBorradorIntervencionScreen(
                 }
             }
 
-            OutlinedTextField(posicion, { posicion = it }, Modifier.fillMaxWidth(), label = { Text("Posición") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            OutlinedTextField(
+                value = posicion,
+                onValueChange = {
+                    posicion = it.filter(Char::isDigit).take(2)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Posición") },
+                supportingText = {
+                    Text(
+                        if (cantidadPosiciones > 0) {
+                            "Posiciones disponibles: 1 a $cantidadPosiciones"
+                        } else {
+                            "Selecciona un activo válido"
+                        }
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                )
+            )
             OutlinedTextField(huella, { huella = it }, Modifier.fillMaxWidth(), label = { Text("Huella (mm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
             OutlinedTextField(marcaLlanta, { marcaLlanta = it }, Modifier.fillMaxWidth(), label = { Text("Marca") })
             OutlinedTextField(medidaLlanta, { medidaLlanta = it.uppercase() }, Modifier.fillMaxWidth(), label = { Text("Medida") })
@@ -207,7 +243,9 @@ fun EditarBorradorIntervencionScreen(
                         serieLlanta, motivo, observaciones, nombreTecnico
                     )
                 },
-                enabled = !guardando,
+                enabled = !guardando &&
+                        activoEncontrado != null &&
+                        (posicion.isBlank() || posicionValida()),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar cambios")
@@ -223,7 +261,8 @@ fun EditarBorradorIntervencionScreen(
                 },
                 enabled = !guardando &&
                         tipoIntervencion.isNotBlank() &&
-                        posicion.isNotBlank() &&
+                        activoEncontrado != null &&
+                        posicionValida() &&
                         nombreTecnico.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) {
