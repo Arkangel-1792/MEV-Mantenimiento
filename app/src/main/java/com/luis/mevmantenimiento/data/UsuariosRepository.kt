@@ -139,6 +139,28 @@ object UsuariosRepository {
         )
     }
 
+    fun enviarRestablecimientoPassword(
+        email: String,
+        onFinalizado: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (email.isBlank()) {
+            onError("El usuario no tiene un correo registrado.")
+            return
+        }
+
+        FirebaseAuth.getInstance()
+            .sendPasswordResetEmail(email.trim().lowercase())
+            .addOnSuccessListener {
+                onFinalizado()
+            }
+            .addOnFailureListener { error ->
+                onError(
+                    "No se pudo enviar el restablecimiento: ${error.message}"
+                )
+            }
+    }
+
     private fun guardarPerfil(
         usuario: UsuarioResumen,
         esNuevo: Boolean,

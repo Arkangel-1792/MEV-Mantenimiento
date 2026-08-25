@@ -1,6 +1,7 @@
 package com.luis.mevmantenimiento.data
 
 import android.net.Uri
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -204,6 +205,7 @@ object VulcanizacionRepository {
                             ESTADO_DEVUELTO
                         )
                     }
+                    .sortedByDescending(::fechaOrden)
 
                 onFinalizado(registros)
             }
@@ -679,6 +681,7 @@ object VulcanizacionRepository {
                             ESTADO_DEVUELTO
                         )
                     }
+                    .sortedByDescending(::fechaOrden)
 
                 onFinalizado(registros)
             }
@@ -1017,5 +1020,15 @@ object VulcanizacionRepository {
             .trim()
             .replace(",", ".")
             .toDoubleOrNull()
+    }
+
+    private fun fechaOrden(
+        registro: Map<String, Any?>
+    ): Long {
+        return (
+                registro["fechaEnvio"] as? Timestamp
+                    ?: registro["fechaActualizacion"] as? Timestamp
+                    ?: registro["fechaCreacion"] as? Timestamp
+                )?.toDate()?.time ?: 0L
     }
 }

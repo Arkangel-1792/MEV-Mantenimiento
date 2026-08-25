@@ -49,6 +49,7 @@ import com.luis.mevmantenimiento.ui.screens.activoResumenDesdeMapa
 import com.luis.mevmantenimiento.ui.screens.ProyectosScreen
 import com.luis.mevmantenimiento.ui.screens.UsuariosScreen
 import com.luis.mevmantenimiento.ui.screens.VulcanizacionMenuScreen
+import com.luis.mevmantenimiento.ui.screens.formatearFechaRegistro
 import com.luis.mevmantenimiento.data.ActivosRepository
 import com.luis.mevmantenimiento.data.ImportadorActivos
 import com.luis.mevmantenimiento.ui.screens.DetalleActivoScreen
@@ -1758,7 +1759,8 @@ class MainActivity : ComponentActivity() {
                                                                     observaciones = registro["observaciones"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro)
                                                                 )
                                                             }
                                                             cargandoHistorialIntervencion = false
@@ -1867,7 +1869,9 @@ class MainActivity : ComponentActivity() {
                                                                     novedad = registro["novedad"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro),
+                                                                    fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                 )
                                                             }
 
@@ -2122,7 +2126,8 @@ class MainActivity : ComponentActivity() {
                                                                     ordenTrabajo = registro["ordenTrabajo"]?.toString().orEmpty(),
                                                                     numeroPedido = registro["numeroPedido"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro)
                                                                 )
                                                             }
 
@@ -2151,7 +2156,9 @@ class MainActivity : ComponentActivity() {
                                                                     novedad = registro["novedad"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro),
+                                                                    fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                 )
                                                             }
 
@@ -2183,7 +2190,8 @@ class MainActivity : ComponentActivity() {
                                                                     observaciones = registro["observaciones"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro)
                                                                 )
                                                             }
 

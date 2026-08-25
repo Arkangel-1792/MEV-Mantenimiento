@@ -188,6 +188,25 @@ fun UsuariosScreen(
                             ) {
                                 Text("Editar usuario")
                             }
+                            OutlinedButton(
+                                onClick = {
+                                    mensaje = "Enviando correo de restablecimiento..."
+                                    UsuariosRepository.enviarRestablecimientoPassword(
+                                        email = usuario.email,
+                                        onFinalizado = {
+                                            mensaje =
+                                                "Correo de restablecimiento enviado a ${usuario.email}."
+                                        },
+                                        onError = {
+                                            mensaje = it
+                                        }
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = usuario.email.isNotBlank()
+                            ) {
+                                Text("Restablecer contraseña")
+                            }
                         }
                     }
                 }

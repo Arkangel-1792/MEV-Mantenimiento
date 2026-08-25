@@ -31,7 +31,8 @@ data class RegistroHistorial(
     val ordenTrabajo: String,
     val numeroPedido: String,
     val estadoRegistro: String,
-    val motivoDevolucion: String = ""
+    val motivoDevolucion: String = "",
+    val fechaRegistro: String = ""
 )
 
 @Composable
@@ -195,6 +196,10 @@ private fun TarjetaMantenimiento(
 
             EstadoHistorial(registro.estadoRegistro)
 
+            if (registro.fechaRegistro.isNotBlank()) {
+                Text("Fecha: ${registro.fechaRegistro}")
+            }
+
             Text("Servicio: ${registro.tipoServicio}")
             Text(
                 "Kilometraje: ${registro.kilometraje ?: "Sin registro"} · " +
@@ -245,6 +250,10 @@ private fun TarjetaHuella(
             )
 
             EstadoHistorial(registro.estadoRegistro)
+
+            if (registro.fechaRegistro.isNotBlank()) {
+                Text("Fecha: ${registro.fechaRegistro}")
+            }
 
             if (registro.proyecto.isNotBlank()) {
                 Text("Proyecto: ${registro.proyecto}")
@@ -301,6 +310,10 @@ private fun TarjetaIntervencion(
             )
 
             EstadoHistorial(registro.estadoRegistro)
+
+            if (registro.fechaRegistro.isNotBlank()) {
+                Text("Fecha: ${registro.fechaRegistro}")
+            }
 
             Text("Intervención: ${registro.tipoIntervencion}")
             Text("Posición: ${registro.posicion.ifBlank { "Sin registrar" }}")

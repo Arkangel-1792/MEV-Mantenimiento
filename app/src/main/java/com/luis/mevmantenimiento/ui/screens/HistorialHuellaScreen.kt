@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 
 data class RegistroHistorialHuella(
@@ -33,7 +34,9 @@ data class RegistroHistorialHuella(
     val novedad: String,
     val nombreTecnico: String,
     val estadoRegistro: String,
-    val motivoDevolucion: String
+    val motivoDevolucion: String,
+    val fechaRegistro: String = "",
+    val fotoUrl: String = ""
 )
 
 @Composable
@@ -137,6 +140,7 @@ fun HistorialHuellaScreen(
 private fun TarjetaHistorialHuella(
     registro: RegistroHistorialHuella
 ) {
+    val uriHandler = LocalUriHandler.current
     val colorEstado = obtenerColorEstadoHuella(
         registro.estadoRegistro
     )
@@ -172,10 +176,25 @@ private fun TarjetaHistorialHuella(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            if (registro.fechaRegistro.isNotBlank()) {
+                Text(text = "Fecha: ${registro.fechaRegistro}")
+            }
+
             if (registro.proyecto.isNotBlank()) {
                 Text(
                     text = "Proyecto: ${registro.proyecto}"
                 )
+            }
+
+            if (registro.fotoUrl.isNotBlank()) {
+                OutlinedButton(
+                    onClick = {
+                        uriHandler.openUri(registro.fotoUrl)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Abrir fotografía")
+                }
             }
 
             registro.kilometraje?.let { kilometraje ->
