@@ -25,12 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 
 data class RegistroRevisionHuella(
     val id: String,
     val codigoActivo: String,
     val proyecto: String,
+    val ciudad: String,
     val kilometraje: Double?,
     val horometro: Double?,
     val huellas: List<Double?>,
@@ -38,7 +40,8 @@ data class RegistroRevisionHuella(
     val novedad: String,
     val nombreTecnico: String,
     val uidUsuario: String,
-    val estadoRegistro: String
+    val estadoRegistro: String,
+    val fotoUrl: String = ""
 )
 
 @Composable
@@ -170,6 +173,8 @@ private fun TarjetaRevisionHuella(
     onAprobar: () -> Unit,
     onDevolver: (String) -> Unit
 ) {
+    val uriHandler = LocalUriHandler.current
+
     var mostrarDevolucion by remember {
         mutableStateOf(false)
     }
@@ -215,6 +220,10 @@ private fun TarjetaRevisionHuella(
                 )
             }
 
+            if (registro.ciudad.isNotBlank()) {
+                Text(text = "Ciudad: ${registro.ciudad}")
+            }
+
             registro.kilometraje?.let { kilometraje ->
                 Text(
                     text = "Kilometraje: ${
@@ -251,8 +260,26 @@ private fun TarjetaRevisionHuella(
                             formatearNumeroRevisionHuella(
                                 huella
                             )
-                        } mm"
+                        } mm${if (esHuellaCritica(huella)) " · CRÍTICA" else ""}",
+                        color = if (esHuellaCritica(huella)) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
+                }
+            }
+
+            if (registro.fotoUrl.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        uriHandler.openUri(registro.fotoUrl)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Abrir evidencia fotográfica")
                 }
             }
 

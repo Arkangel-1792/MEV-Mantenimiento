@@ -43,6 +43,7 @@ fun TomaHuellaScreen(
     onGuardar: (
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
@@ -63,6 +64,10 @@ fun TomaHuellaScreen(
     }
 
     var proyecto by remember {
+        mutableStateOf("")
+    }
+
+    var ciudad by remember {
         mutableStateOf("")
     }
 
@@ -110,6 +115,12 @@ fun TomaHuellaScreen(
     val cantidadPosiciones = obtenerCantidadPosiciones(
         activoSeleccionado
     )
+
+    val errorIndicadores = validarIndicadoresActivo(
+        activo = activoSeleccionado,
+        kilometraje = kilometraje,
+        horometro = horometro
+    )
     var textoReconocido by remember {
         mutableStateOf("")
     }
@@ -120,13 +131,23 @@ fun TomaHuellaScreen(
 
     fun guardarDesdeVoz(
         estado: String
-    ) {
+    ): String {
         val activo = activoSeleccionado
 
         if (activo == null) {
-            mensajeVoz =
-                "Primero debes seleccionar un activo."
-            return
+            return "Primero debes seleccionar un activo."
+        }
+
+        if (estado == "ENVIADO") {
+            val errorIndicador = validarIndicadoresActivo(
+                activo = activo,
+                kilometraje = kilometraje,
+                horometro = horometro
+            )
+
+            if (errorIndicador != null) {
+                return errorIndicador
+            }
         }
 
         val cantidadActual =
@@ -145,6 +166,7 @@ fun TomaHuellaScreen(
         onGuardar(
             activo.codigo,
             proyecto,
+            ciudad,
             kilometraje,
             horometro,
             huellasRegistro,
@@ -154,6 +176,12 @@ fun TomaHuellaScreen(
             fotoUri,
             estado
         )
+
+        return if (estado == "BORRADOR") {
+            "Orden de guardar borrador ejecutada."
+        } else {
+            "Orden de envío ejecutada."
+        }
     }
 
     fun aplicarComandoVoz(
@@ -177,15 +205,17 @@ fun TomaHuellaScreen(
                 } else {
                     activoSeleccionado = activoEncontrado
 
-                    kilometraje =
-                        activoEncontrado.kilometraje
-                            ?.toString()
-                            .orEmpty()
+                    kilometraje = if (activoEncontrado.usaKilometraje) {
+                        activoEncontrado.kilometraje?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
 
-                    horometro =
-                        activoEncontrado.horometro
-                            ?.toString()
-                            .orEmpty()
+                    horometro = if (activoEncontrado.usaHorometro) {
+                        activoEncontrado.horometro?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
 
                     huellas.indices.forEach { indice ->
                         huellas[indice] = ""
@@ -256,15 +286,21 @@ fun TomaHuellaScreen(
 
             VoiceCommand.GuardarBorrador -> {
                 guardarDesdeVoz("BORRADOR")
-                "Orden de guardar borrador ejecutada."
             }
 
             VoiceCommand.EnviarRegistro -> {
-                if (nombreTecnico.isBlank()) {
+                val errorIndicador = validarIndicadoresActivo(
+                    activo = activoSeleccionado,
+                    kilometraje = kilometraje,
+                    horometro = horometro
+                )
+
+                if (errorIndicador != null) {
+                    errorIndicador
+                } else if (nombreTecnico.isBlank()) {
                     "Ingresa el nombre del técnico antes de enviar."
                 } else {
                     guardarDesdeVoz("ENVIADO")
-                    "Orden de envío ejecutada."
                 }
             }
 
@@ -382,15 +418,17 @@ fun TomaHuellaScreen(
                             activoSeleccionado = activo
                             menuActivosExpandido = false
 
-                            kilometraje =
-                                activo.kilometraje
-                                    ?.toString()
-                                    .orEmpty()
+                            kilometraje = if (activo.usaKilometraje) {
+                                activo.kilometraje?.toString().orEmpty()
+                            } else {
+                                ""
+                            }
 
-                            horometro =
-                                activo.horometro
-                                    ?.toString()
-                                    .orEmpty()
+                            horometro = if (activo.usaHorometro) {
+                                activo.horometro?.toString().orEmpty()
+                            } else {
+                                ""
+                            }
 
                             huellas.indices.forEach { indice ->
                                 huellas[indice] = ""
@@ -421,14 +459,40 @@ fun TomaHuellaScreen(
             )
 
             OutlinedTextField(
-                value = kilometraje,
+                value = ciudad,
                 onValueChange = {
-                    kilometraje = it
+                    ciudad = it
                 },
                 enabled = !guardando,
                 modifier = Modifier.fillMaxWidth(),
                 label = {
-                    Text("Kilometraje")
+                    Text("Ciudad")
+                },
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = kilometraje,
+                onValueChange = {
+                    kilometraje = it
+                },
+                enabled =
+                    !guardando &&
+                            activoSeleccionado?.usaKilometraje != false,
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text(
+                        if (activoSeleccionado?.usaKilometraje == true) {
+                            "Kilometraje *"
+                        } else {
+                            "Kilometraje"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoSeleccionado?.usaKilometraje == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
                 },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
@@ -441,10 +505,23 @@ fun TomaHuellaScreen(
                 onValueChange = {
                     horometro = it
                 },
-                enabled = !guardando,
+                enabled =
+                    !guardando &&
+                            activoSeleccionado?.usaHorometro != false,
                 modifier = Modifier.fillMaxWidth(),
                 label = {
-                    Text("Horómetro")
+                    Text(
+                        if (activoSeleccionado?.usaHorometro == true) {
+                            "Horómetro *"
+                        } else {
+                            "Horómetro"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoSeleccionado?.usaHorometro == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
                 },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
@@ -469,6 +546,12 @@ fun TomaHuellaScreen(
                         label = {
                             Text("P${indice + 1} - Huella en mm")
                         },
+                        supportingText = {
+                            if (esHuellaCritica(huellas[indice])) {
+                                Text("Huella crítica: 6 mm o menos")
+                            }
+                        },
+                        isError = esHuellaCritica(huellas[indice]),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
                         ),
@@ -604,6 +687,7 @@ fun TomaHuellaScreen(
                     onGuardar(
                         activo.codigo,
                         proyecto,
+                        ciudad,
                         kilometraje,
                         horometro,
                         huellasRegistro,
@@ -617,7 +701,13 @@ fun TomaHuellaScreen(
                 enabled =
                     !guardando &&
                             activoSeleccionado != null &&
-                            nombreTecnico.isNotBlank(),
+                            (
+                                    estadoRegistro == "BORRADOR" ||
+                                            (
+                                                    nombreTecnico.isNotBlank() &&
+                                                            errorIndicadores == null
+                                                    )
+                                    ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(

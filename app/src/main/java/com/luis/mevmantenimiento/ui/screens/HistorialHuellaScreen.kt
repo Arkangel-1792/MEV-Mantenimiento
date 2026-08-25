@@ -27,6 +27,7 @@ data class RegistroHistorialHuella(
     val id: String,
     val codigoActivo: String,
     val proyecto: String,
+    val ciudad: String,
     val kilometraje: Double?,
     val horometro: Double?,
     val huellas: List<Double?>,
@@ -184,6 +185,10 @@ private fun TarjetaHistorialHuella(
                 Text(
                     text = "Proyecto: ${registro.proyecto}"
                 )
+            }
+
+            if (registro.ciudad.isNotBlank()) {
+                Text(text = "Ciudad: ${registro.ciudad}")
             }
 
             if (registro.fotoUrl.isNotBlank()) {

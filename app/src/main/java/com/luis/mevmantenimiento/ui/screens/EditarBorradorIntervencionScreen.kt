@@ -63,6 +63,11 @@ fun EditarBorradorIntervencionScreen(
         it.codigo.equals(codigoActivo.trim(), ignoreCase = true)
     }
     val cantidadPosiciones = cantidadPosicionesDelActivo(activoEncontrado)
+    val errorIndicadores = validarIndicadoresActivo(
+        activo = activoEncontrado,
+        kilometraje = kilometraje,
+        horometro = horometro
+    )
 
     fun posicionValida(): Boolean {
         val numero = posicion.toIntOrNull() ?: return false
@@ -79,8 +84,16 @@ fun EditarBorradorIntervencionScreen(
                     "Activo no encontrado."
                 } else {
                     codigoActivo = activo.codigo
-                    kilometraje = activo.kilometraje?.toString().orEmpty()
-                    horometro = activo.horometro?.toString().orEmpty()
+                    kilometraje = if (activo.usaKilometraje) {
+                        activo.kilometraje?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
+                    horometro = if (activo.usaHorometro) {
+                        activo.horometro?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
                     "Activo actualizado."
                 }
             }
@@ -184,8 +197,56 @@ fun EditarBorradorIntervencionScreen(
 
             OutlinedTextField(codigoActivo, { codigoActivo = it.uppercase() }, Modifier.fillMaxWidth(), label = { Text("Código del activo") })
             OutlinedTextField(proyecto, { proyecto = it }, Modifier.fillMaxWidth(), label = { Text("Proyecto") })
-            OutlinedTextField(kilometraje, { kilometraje = it }, Modifier.fillMaxWidth(), label = { Text("Kilometraje") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-            OutlinedTextField(horometro, { horometro = it }, Modifier.fillMaxWidth(), label = { Text("Horómetro") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            OutlinedTextField(
+                value = kilometraje,
+                onValueChange = { kilometraje = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text(
+                        if (activoEncontrado?.usaKilometraje == true) {
+                            "Kilometraje *"
+                        } else {
+                            "Kilometraje"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoEncontrado?.usaKilometraje == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                ),
+                enabled =
+                    !guardando &&
+                            activoEncontrado?.usaKilometraje != false
+            )
+            OutlinedTextField(
+                value = horometro,
+                onValueChange = { horometro = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Text(
+                        if (activoEncontrado?.usaHorometro == true) {
+                            "Horómetro *"
+                        } else {
+                            "Horómetro"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoEncontrado?.usaHorometro == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                ),
+                enabled =
+                    !guardando &&
+                            activoEncontrado?.usaHorometro != false
+            )
 
             Text("Tipo de intervención", style = MaterialTheme.typography.titleMedium)
 
@@ -227,7 +288,21 @@ fun EditarBorradorIntervencionScreen(
                     keyboardType = KeyboardType.Number
                 )
             )
-            OutlinedTextField(huella, { huella = it }, Modifier.fillMaxWidth(), label = { Text("Huella (mm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            OutlinedTextField(
+                value = huella,
+                onValueChange = { huella = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Huella (mm)") },
+                supportingText = {
+                    if (esHuellaCritica(huella)) {
+                        Text("Huella crítica: 6 mm o menos")
+                    }
+                },
+                isError = esHuellaCritica(huella),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                )
+            )
             OutlinedTextField(marcaLlanta, { marcaLlanta = it }, Modifier.fillMaxWidth(), label = { Text("Marca") })
             OutlinedTextField(medidaLlanta, { medidaLlanta = it.uppercase() }, Modifier.fillMaxWidth(), label = { Text("Medida") })
             OutlinedTextField(serieLlanta, { serieLlanta = it.uppercase() }, Modifier.fillMaxWidth(), label = { Text("Serie") })
@@ -262,6 +337,7 @@ fun EditarBorradorIntervencionScreen(
                 enabled = !guardando &&
                         tipoIntervencion.isNotBlank() &&
                         activoEncontrado != null &&
+                        errorIndicadores == null &&
                         posicionValida() &&
                         nombreTecnico.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()

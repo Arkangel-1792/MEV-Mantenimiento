@@ -462,6 +462,7 @@ object ExportadorReportes {
             "ID",
             "Activo",
             "Proyecto",
+            "Ciudad",
             "Kilometraje",
             "Horómetro"
         )
@@ -491,6 +492,7 @@ object ExportadorReportes {
                         texto(registro["id"]),
                         texto(registro["codigoActivo"]),
                         texto(registro["proyecto"]),
+                        texto(registro["ciudad"]),
                         numero(registro["kilometraje"]),
                         numero(registro["horometro"])
                     )

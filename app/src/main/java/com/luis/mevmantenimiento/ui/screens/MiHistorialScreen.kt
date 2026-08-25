@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -234,6 +235,8 @@ private fun TarjetaMantenimiento(
 private fun TarjetaHuella(
     registro: RegistroHistorialHuella
 ) {
+    val uriHandler = LocalUriHandler.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -259,6 +262,10 @@ private fun TarjetaHuella(
                 Text("Proyecto: ${registro.proyecto}")
             }
 
+            if (registro.ciudad.isNotBlank()) {
+                Text("Ciudad: ${registro.ciudad}")
+            }
+
             Text(
                 "Kilometraje: ${registro.kilometraje ?: "Sin registro"} · " +
                         "Horómetro: ${registro.horometro ?: "Sin registro"}"
@@ -280,6 +287,17 @@ private fun TarjetaHuella(
 
             if (registro.nombreTecnico.isNotBlank()) {
                 Text("Técnico: ${registro.nombreTecnico}")
+            }
+
+            if (registro.fotoUrl.isNotBlank()) {
+                OutlinedButton(
+                    onClick = {
+                        uriHandler.openUri(registro.fotoUrl)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Abrir fotografía")
+                }
             }
 
             MotivoDevuelto(
