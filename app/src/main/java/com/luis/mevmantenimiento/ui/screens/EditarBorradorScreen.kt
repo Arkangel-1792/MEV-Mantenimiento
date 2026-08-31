@@ -18,6 +18,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +28,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.luis.mevmantenimiento.voice.VoiceCommand
+import com.luis.mevmantenimiento.voice.VoiceCommandParser
+import com.luis.mevmantenimiento.voice.VoiceFloatingButton
 
 @Composable
 fun EditarBorradorScreen(
@@ -85,13 +89,63 @@ fun EditarBorradorScreen(
         mutableStateOf(borrador.numeroPedido)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    var mensajeVoz by remember(borrador.id) { mutableStateOf("") }
+
+    fun aplicarVoz(comando: VoiceCommand): String = when (comando) {
+        is VoiceCommand.ActualizarTipoServicio -> {
+            tipoServicio = comando.valor
+            "Tipo de servicio actualizado."
+        }
+        is VoiceCommand.ActualizarKilometraje -> {
+            kilometraje = comando.valor
+            "Kilometraje actualizado."
+        }
+        is VoiceCommand.ActualizarHorometro -> {
+            horometro = comando.valor
+            "Horómetro actualizado."
+        }
+        is VoiceCommand.ActualizarAccionEjecutada -> {
+            accionEjecutada = comando.valor
+            "Mantenimiento realizado actualizado."
+        }
+        is VoiceCommand.ActualizarNovedad -> {
+            observaciones = comando.valor
+            "Observaciones actualizadas."
+        }
+        is VoiceCommand.ActualizarOrdenTrabajo -> {
+            ordenTrabajo = comando.valor
+            "Orden de trabajo actualizada."
+        }
+        is VoiceCommand.ActualizarNumeroPedido -> {
+            numeroPedido = comando.valor
+            "Número de pedido actualizado."
+        }
+        else -> "Comando no aplicable a este borrador."
+    }
+
+    fun ejecutarVoz(texto: String) {
+        mensajeVoz = VoiceCommandParser.interpretarVarios(texto)
+            .map(::aplicarVoz)
+            .joinToString("\n")
+    }
+
+    Scaffold(
+        floatingActionButton = {
+            VoiceFloatingButton(
+                habilitado = !guardando,
+                onTextoReconocido = { ejecutarVoz(it) },
+                onError = { mensajeVoz = "Error de voz: $it" }
+            )
+        }
+    ) { paddingValues ->
+      Column(
+          modifier = Modifier
+              .fillMaxSize()
+              .padding(paddingValues)
+              .verticalScroll(rememberScrollState())
+              .padding(20.dp),
+          verticalArrangement = Arrangement.spacedBy(12.dp)
+      ) {
         Text(
             text = if (esDevuelto) {
                 "Corregir registro devuelto"
@@ -150,6 +204,10 @@ fun EditarBorradorScreen(
                 text = mensaje,
                 style = MaterialTheme.typography.bodyMedium
             )
+        }
+
+        if (mensajeVoz.isNotBlank()) {
+            Text(text = mensajeVoz, style = MaterialTheme.typography.bodySmall)
         }
 
         if (guardando) {
@@ -304,5 +362,6 @@ fun EditarBorradorScreen(
         ) {
             Text("Volver a mis borradores")
         }
+      }
     }
 }
