@@ -12,8 +12,8 @@ android {
         applicationId = "com.luis.mevmantenimiento"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.1.0-beta05"
+        versionCode = 6
+        versionName = "1.1.0-beta06"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -43,6 +43,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
