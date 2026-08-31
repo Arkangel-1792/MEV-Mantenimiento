@@ -214,13 +214,16 @@ fun EditarBorradorHuellaScreen(
             OutlinedTextField(
                 value = huellas[indice],
                 onValueChange = { nuevoValor ->
-                    huellas[indice] =
-                        filtrarNumero(nuevoValor)
+                    val filtrado = filtrarNumero(nuevoValor)
+                    if (aceptarEntradaHuella(filtrado)) {
+                        huellas[indice] = filtrado
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 label = {
                     Text("P${indice + 1} - milímetros")
                 },
+                supportingText = { Text("Valor permitido: 0.1 a 26 mm") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
                 ),

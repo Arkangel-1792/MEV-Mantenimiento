@@ -201,6 +201,12 @@ fun TomaHuellaScreen(
                         indice >= cantidadActual
                     ) {
                         "La posición ${comando.posicion} no corresponde a este activo."
+                    } else if (
+                        convertirHuella(comando.valor)?.let {
+                            it <= 0.0 || it > HUELLA_MAXIMA_MM
+                        } != false
+                    ) {
+                        "Huella rechazada: debe estar entre 0.1 y 26 mm."
                     } else {
                         huellas[indice] =
                             comando.valor
@@ -447,14 +453,17 @@ fun TomaHuellaScreen(
                 for (indice in 0 until cantidadPosiciones) {
                     OutlinedTextField(
                         value = huellas[indice],
-                        onValueChange = {
-                            huellas[indice] = it
+                        onValueChange = { nuevoValor ->
+                            if (aceptarEntradaHuella(nuevoValor)) {
+                                huellas[indice] = nuevoValor
+                            }
                         },
                         enabled = !guardando,
                         modifier = Modifier.fillMaxWidth(),
                         label = {
                             Text("P${indice + 1} - Huella en mm")
                         },
+                        supportingText = { Text("Valor permitido: 0.1 a 26 mm") },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
                         ),

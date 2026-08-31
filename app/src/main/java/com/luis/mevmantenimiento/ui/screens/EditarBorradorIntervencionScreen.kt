@@ -191,7 +191,14 @@ fun EditarBorradorIntervencionScreen(
             }
 
             OutlinedTextField(posicion, { posicion = it }, Modifier.fillMaxWidth(), label = { Text("Posición") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-            OutlinedTextField(huella, { huella = it }, Modifier.fillMaxWidth(), label = { Text("Huella (mm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            OutlinedTextField(
+                huella,
+                { nuevoValor -> if (aceptarEntradaHuella(nuevoValor)) huella = nuevoValor },
+                Modifier.fillMaxWidth(),
+                label = { Text("Huella (mm)") },
+                supportingText = { Text("Valor permitido: 0.1 a 26 mm") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
             OutlinedTextField(marcaLlanta, { marcaLlanta = it }, Modifier.fillMaxWidth(), label = { Text("Marca") })
             OutlinedTextField(medidaLlanta, { medidaLlanta = it.uppercase() }, Modifier.fillMaxWidth(), label = { Text("Medida") })
             OutlinedTextField(serieLlanta, { serieLlanta = it.uppercase() }, Modifier.fillMaxWidth(), label = { Text("Serie") })

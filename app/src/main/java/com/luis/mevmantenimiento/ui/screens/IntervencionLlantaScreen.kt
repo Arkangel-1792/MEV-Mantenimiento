@@ -226,8 +226,13 @@ fun IntervencionLlantaScreen(
             }
 
             is VoiceCommand.ActualizarHuellaLlanta -> {
-                huella = comando.valor
-                "Huella: ${comando.valor} mm."
+                val valor = convertirHuella(comando.valor)
+                if (valor == null || valor <= 0.0 || valor > HUELLA_MAXIMA_MM) {
+                    "Huella rechazada: debe estar entre 0.1 y 26 mm."
+                } else {
+                    huella = comando.valor
+                    "Huella: ${comando.valor} mm."
+                }
             }
 
             is VoiceCommand.ActualizarMarcaLlanta -> {
@@ -516,14 +521,17 @@ fun IntervencionLlantaScreen(
 
             OutlinedTextField(
                 value = huella,
-                onValueChange = {
-                    huella = it
+                onValueChange = { nuevoValor ->
+                    if (aceptarEntradaHuella(nuevoValor)) {
+                        huella = nuevoValor
+                    }
                 },
                 modifier =
                     Modifier.fillMaxWidth(),
                 label = {
                     Text("Huella (mm)")
                 },
+                supportingText = { Text("Valor permitido: 0.1 a 26 mm") },
                 keyboardOptions =
                     KeyboardOptions(
                         keyboardType =
