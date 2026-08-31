@@ -176,6 +176,11 @@ object VulcanizacionRepository {
             }
     }
 
+    fun cargarHuellasAprobadas(
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) = cargarAprobados(COLECCION_TOMAS_HUELLA, "tomas de huella", onFinalizado, onError)
+
     fun actualizarBorrador(
         idRegistro: String,
         codigoActivo: String,
@@ -498,6 +503,17 @@ object VulcanizacionRepository {
             if (huellas.none { it.isNotBlank() }) {
                 return "Debes registrar al menos una medida de huella."
             }
+
+            val medidaInvalida = huellas
+                .filter { it.isNotBlank() }
+                .firstOrNull { texto ->
+                    val valor = texto.trim().replace(',', '.').toDoubleOrNull()
+                    valor == null || valor !in 0.1..30.0
+                }
+
+            if (medidaInvalida != null) {
+                return "Cada medida de huella debe estar entre 0.1 y 30 mm. Revisa el valor: $medidaInvalida."
+            }
         }
 
         return null
@@ -648,6 +664,33 @@ object VulcanizacionRepository {
                     "No se pudo cargar el historial de intervenciones: " +
                             error.message.orEmpty()
                 )
+            }
+    }
+
+    fun cargarIntervencionesAprobadas(
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) = cargarAprobados(COLECCION_INTERVENCIONES_LLANTA, "intervenciones", onFinalizado, onError)
+
+    private fun cargarAprobados(
+        coleccion: String,
+        descripcion: String,
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            onError("No existe una sesión de usuario activa.")
+            return
+        }
+        FirebaseFirestore.getInstance().collection(coleccion)
+            .whereEqualTo("estadoRegistro", ESTADO_APROBADO).get()
+            .addOnSuccessListener { resultado ->
+                onFinalizado(resultado.documents.map { documento ->
+                    documento.data.orEmpty().toMutableMap().apply { this["id"] = documento.id }
+                })
+            }
+            .addOnFailureListener { error ->
+                onError("No se pudieron cargar las $descripcion aprobadas: ${error.message}")
             }
     }
 
@@ -940,6 +983,7 @@ object VulcanizacionRepository {
         val codigoActivo = datos["codigoActivo"]?.toString().orEmpty()
         val tipoIntervencion = datos["tipoIntervencion"]?.toString().orEmpty()
         val posicion = datos["posicion"]?.toString().orEmpty()
+        val huella = (datos["huella"] as? Number)?.toDouble()
         val nombreTecnico = datos["nombreTecnico"]?.toString().orEmpty()
         val estadoRegistro = datos["estadoRegistro"]?.toString().orEmpty()
 
@@ -965,6 +1009,10 @@ object VulcanizacionRepository {
 
             if (nombreTecnico.isBlank()) {
                 return "Debes ingresar el nombre del técnico."
+            }
+
+            if (huella != null && huella !in 0.1..30.0) {
+                return "La medida de huella debe estar entre 0.1 y 30 mm."
             }
         }
 

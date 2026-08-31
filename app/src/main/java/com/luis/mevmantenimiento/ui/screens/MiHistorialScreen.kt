@@ -41,6 +41,8 @@ fun MiHistorialScreen(
     registrosIntervencion: List<RegistroHistorialIntervencion>,
     cargando: Boolean,
     mensaje: String,
+    titulo: String = "Mi historial",
+    descripcion: String = "Consulta mantenimientos, tomas de huella e intervenciones enviadas.",
     onVolver: () -> Unit
 ) {
     val total =
@@ -57,14 +59,14 @@ fun MiHistorialScreen(
             modifier = Modifier.padding(horizontal = 20.dp)
         ) {
             Text(
-                text = "Mi historial",
+                text = titulo,
                 style = MaterialTheme.typography.headlineSmall
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Consulta mantenimientos, tomas de huella e intervenciones enviadas.",
+                text = descripcion,
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -99,7 +101,7 @@ fun MiHistorialScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "No existen registros en tu historial.",
+                    text = "No existen registros para esta consulta.",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }

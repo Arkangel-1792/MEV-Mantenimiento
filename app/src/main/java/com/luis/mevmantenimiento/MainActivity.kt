@@ -660,6 +660,19 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
 
+                                "REGISTROS_APROBADOS" -> {
+                                    MiHistorialScreen(
+                                        registrosMantenimiento = historial,
+                                        registrosHuella = historialHuella,
+                                        registrosIntervencion = historialIntervencion,
+                                        cargando = cargandoHistorial,
+                                        mensaje = mensajeHistorial,
+                                        titulo = "Registros aprobados",
+                                        descripcion = "Consulta general de mantenimientos, tomas de huella e intervenciones aprobadas.",
+                                        onVolver = { pantallaActual = "MENU" }
+                                    )
+                                }
+
                                 "MIS_BORRADORES" -> {
                                     MisBorradoresScreen(
                                         borradoresMantenimiento = borradores,
@@ -2114,6 +2127,100 @@ class MainActivity : ComponentActivity() {
                                                                 "Intervenciones: $mensaje"
                                                             )
                                                         }
+                                                    )
+                                                }
+
+                                                "Registros aprobados" -> {
+                                                    cargandoHistorial = true
+                                                    mensajeHistorial = ""
+                                                    historial = emptyList()
+                                                    historialHuella = emptyList()
+                                                    historialIntervencion = emptyList()
+                                                    var cargasPendientes = 3
+
+                                                    fun finalizarAprobados() {
+                                                        cargasPendientes--
+                                                        if (cargasPendientes <= 0) {
+                                                            cargandoHistorial = false
+                                                            pantallaActual = "REGISTROS_APROBADOS"
+                                                        }
+                                                    }
+
+                                                    fun errorAprobados(mensaje: String) {
+                                                        mensajeHistorial = if (mensajeHistorial.isBlank()) mensaje
+                                                        else mensajeHistorial + "\n" + mensaje
+                                                        finalizarAprobados()
+                                                    }
+
+                                                    MantenimientoRepository.cargarRegistrosAprobados(
+                                                        onFinalizado = { datos ->
+                                                            historial = datos.map { registro ->
+                                                                RegistroHistorial(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    tipoServicio = registro["tipoServicio"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    accionEjecutada = registro["accionEjecutada"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    ordenTrabajo = registro["ordenTrabajo"]?.toString().orEmpty(),
+                                                                    numeroPedido = registro["numeroPedido"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                )
+                                                            }
+                                                            finalizarAprobados()
+                                                        },
+                                                        onError = { errorAprobados("Mantenimiento: $it") }
+                                                    )
+
+                                                    VulcanizacionRepository.cargarHuellasAprobadas(
+                                                        onFinalizado = { datos ->
+                                                            historialHuella = datos.map { registro ->
+                                                                RegistroHistorialHuella(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    huellas = (1..12).map { (registro["P$it"] as? Number)?.toDouble() },
+                                                                    estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
+                                                                    novedad = registro["novedad"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                )
+                                                            }
+                                                            finalizarAprobados()
+                                                        },
+                                                        onError = { errorAprobados("Toma de huella: $it") }
+                                                    )
+
+                                                    VulcanizacionRepository.cargarIntervencionesAprobadas(
+                                                        onFinalizado = { datos ->
+                                                            historialIntervencion = datos.map { registro ->
+                                                                RegistroHistorialIntervencion(
+                                                                    id = registro["id"]?.toString().orEmpty(),
+                                                                    codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
+                                                                    proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
+                                                                    horometro = (registro["horometro"] as? Number)?.toDouble(),
+                                                                    tipoIntervencion = registro["tipoIntervencion"]?.toString().orEmpty(),
+                                                                    posicion = registro["posicion"]?.toString().orEmpty(),
+                                                                    huella = (registro["huella"] as? Number)?.toDouble(),
+                                                                    marcaLlanta = registro["marcaLlanta"]?.toString().orEmpty(),
+                                                                    medidaLlanta = registro["medidaLlanta"]?.toString().orEmpty(),
+                                                                    serieLlanta = registro["serieLlanta"]?.toString().orEmpty(),
+                                                                    motivo = registro["motivo"]?.toString().orEmpty(),
+                                                                    observaciones = registro["observaciones"]?.toString().orEmpty(),
+                                                                    nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                )
+                                                            }
+                                                            finalizarAprobados()
+                                                        },
+                                                        onError = { errorAprobados("Intervenciones: $it") }
                                                     )
                                                 }
 

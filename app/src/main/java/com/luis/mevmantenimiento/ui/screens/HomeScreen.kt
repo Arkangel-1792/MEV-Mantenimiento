@@ -198,6 +198,10 @@ private fun obtenerOpcionesPorRol(
                 descripcion = "Revisar información enviada por el personal."
             ),
             OpcionMenu(
+                titulo = "Registros aprobados",
+                descripcion = "Consultar trabajos ya revisados y aprobados."
+            ),
+            OpcionMenu(
                 titulo = "Reportes",
                 descripcion = "Consultar reportes operativos."
             )
@@ -235,6 +239,10 @@ private fun obtenerOpcionesPorRol(
             OpcionMenu(
                 titulo = "Revisión de registros",
                 descripcion = "Aprobar, devolver o corregir registros enviados."
+            ),
+            OpcionMenu(
+                titulo = "Registros aprobados",
+                descripcion = "Consultar trabajos ya revisados y aprobados."
             ),
             OpcionMenu(
                 titulo = "Reportes",
@@ -293,6 +301,10 @@ private fun opcionesSupervisor(): List<OpcionMenu> {
         OpcionMenu(
             titulo = "Revisión de registros",
             descripcion = "Visualizar registros por técnico o vulcanizador."
+        ),
+        OpcionMenu(
+            titulo = "Registros aprobados",
+            descripcion = "Consultar trabajos ya revisados y aprobados."
         )
     )
 }

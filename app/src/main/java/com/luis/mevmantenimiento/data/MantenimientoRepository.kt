@@ -219,6 +219,31 @@ object MantenimientoRepository {
      * Carga para el revisor todos los registros
      * que se encuentran en estado ENVIADO.
      */
+    fun cargarRegistrosAprobados(
+        onFinalizado: (List<Map<String, Any?>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            onError("No existe una sesión de usuario activa.")
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection(COLECCION_REGISTROS)
+            .whereEqualTo("estadoRegistro", ESTADO_APROBADO)
+            .get()
+            .addOnSuccessListener { resultado ->
+                onFinalizado(resultado.documents.map { documento ->
+                    documento.data.orEmpty().toMutableMap().apply {
+                        this["id"] = documento.id
+                    }
+                })
+            }
+            .addOnFailureListener { error ->
+                onError("No se pudieron cargar los mantenimientos aprobados: ${error.message}")
+            }
+    }
+
     fun cargarRegistrosPendientesRevision(
         onFinalizado: (
             List<Map<String, Any?>>
