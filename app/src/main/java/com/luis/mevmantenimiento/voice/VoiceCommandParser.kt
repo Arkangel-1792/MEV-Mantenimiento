@@ -95,6 +95,9 @@ object VoiceCommandParser {
         extraerValorDespuesDe(
             texto,
             listOf(
+                "mantenimiento realizado",
+                "mantenimiento ejecutado",
+                "mantenimiento",
                 "accion ejecutada",
                 "accion realizada",
                 "trabajo realizado",
@@ -273,7 +276,7 @@ object VoiceCommandParser {
         }
 
         val patronInicio = Regex(
-            """\b(?:seleccionar\s+activo|activo|volqueta|camioneta|equipo|proyecto|obra|campamento|kilometraje|kilometros?|km|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|hora\s+equipo|tipo\s+de\s+servicio|servicio|accion\s+ejecutada|accion\s+realizada|trabajo\s+realizado|trabajo\s+ejecutado|actividad\s+realizada|accion|orden\s+de\s+trabajo|numero\s+de\s+orden|orden|numero\s+de\s+pedido|numero\s+pedido|pedido|tipo\s+de\s+intervencion|intervencion|huella\s+de\s+llanta|profundidad\s+de\s+huella|profundidad|huella|marca\s+de\s+llanta|marca\s+llanta|marca|medida\s+de\s+llanta|medida\s+llanta|dimension\s+de\s+llanta|dimension|medida|serie\s+de\s+llanta|serie\s+llanta|numero\s+de\s+serie|serie|motivo\s+de\s+intervencion|motivo|estado\s+general|condicion\s+general|estado|novedad|observaciones?|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|p\s*(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|guardar\s+borrador|guardar\s+registro|enviar\s+registro|enviar\s+borrador)\b"""
+            """\b(?:seleccionar\s+activo|codigo|activo|equipo|volqueta|camioneta|camion|tractor|mini(?:cargadora)?|retro(?:excavadora)?|excavadora|cabezal|cargadora|motoniveladora|rodillo|generador|soldadora|torre\s+de\s+iluminacion|barredora|mixer|pavimentadora|grua|tanquero|distribuidor|proyecto|obra|campamento|kilometraje|kilometros?|km|horometro|orometro|odometro|contador\s+de\s+horas|horas\s+del\s+equipo|hora\s+equipo|tipo\s+de\s+servicio|servicio|mantenimiento\s+realizado|mantenimiento\s+ejecutado|mantenimiento|accion\s+ejecutada|accion\s+realizada|trabajo\s+realizado|trabajo\s+ejecutado|actividad\s+realizada|accion|orden\s+de\s+trabajo|numero\s+de\s+orden|orden|numero\s+de\s+pedido|numero\s+pedido|pedido|tipo\s+de\s+intervencion|intervencion|huella\s+de\s+llanta|profundidad\s+de\s+huella|profundidad|huella|marca\s+de\s+llanta|marca\s+llanta|marca|medida\s+de\s+llanta|medida\s+llanta|dimension\s+de\s+llanta|dimension|medida|serie\s+de\s+llanta|serie\s+llanta|numero\s+de\s+serie|serie|motivo\s+de\s+intervencion|motivo|estado\s+general|condicion\s+general|estado|novedad|observaciones?|nombre\s+del\s+tecnico|nombre\s+tecnico|tecnico|vulcanizador|mecanico|posicion\s+(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|p\s*(?:\d{1,2}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)|guardar\s+borrador|guardar\s+registro|enviar\s+registro|enviar\s+borrador)\b"""
         )
 
         val inicios = patronInicio
@@ -329,11 +332,39 @@ object VoiceCommandParser {
         texto: String
     ): VoiceCommand.SeleccionarActivo? {
 
+        val prefijosPorAlias = linkedMapOf(
+            "torre de iluminacion" to "ETORIL",
+            "retroexcavadora" to "MRETR",
+            "retro excavadora" to "MRETR",
+            "mixer autocargable" to "MMIXE",
+            "camioneta" to "VCAMI",
+            "motoniveladora" to "MMOTO",
+            "minicargadora" to "MMINI",
+            "pavimentadora" to "MPAVI",
+            "distribuidor" to "VDIST",
+            "excavadora" to "MEXCA",
+            "generador" to "EGENE",
+            "soldadora" to "ESOLD",
+            "barredora" to "MBARR",
+            "cargadora" to "MCARG",
+            "volqueta" to "VVOLQ",
+            "tractor" to "MTRAC",
+            "cabezal" to "VCABE",
+            "tanquero" to "VTANQ",
+            "camion" to "VCAON",
+            "rodillo" to "MRODI",
+            "mixer" to "MMIXE",
+            "grua" to "VGRUA",
+            "mini" to "MMINI"
+        )
+
+        val aliasEncontrado = prefijosPorAlias.keys.firstOrNull { texto.contains(it) }
+
         if (
             !texto.contains("activo") &&
-            !texto.contains("volqueta") &&
-            !texto.contains("camioneta") &&
-            !texto.contains("equipo")
+            !texto.contains("equipo") &&
+            !texto.contains("codigo") &&
+            aliasEncontrado == null
         ) {
             return null
         }
@@ -386,22 +417,10 @@ object VoiceCommandParser {
                 )
                 ?: return null
 
-        return when {
-            texto.contains("volqueta") ->
-                VoiceCommand.SeleccionarActivo(
-                    codigo = construirCodigoVolqueta(numero)
-                )
-
-            texto.contains("camioneta") ->
-                VoiceCommand.SeleccionarActivo(
-                    codigo = construirCodigoCamioneta(numero)
-                )
-
-            else ->
-                VoiceCommand.SeleccionarActivo(
-                    codigo = numero.toString()
-                )
-        }
+        val prefijo = aliasEncontrado?.let { prefijosPorAlias[it] }
+        return VoiceCommand.SeleccionarActivo(
+            codigo = if (prefijo == null) numero.toString() else construirCodigo(prefijo, numero)
+        )
     }
 
     private fun interpretarPosicionConHuella(
@@ -489,6 +508,9 @@ object VoiceCommandParser {
                     .toString()
                     .padStart(4, '0')
     }
+
+    private fun construirCodigo(prefijo: String, numero: Int): String =
+        prefijo + numero.toString().padStart(4, '0')
 
     private fun extraerPrimerNumero(
         texto: String

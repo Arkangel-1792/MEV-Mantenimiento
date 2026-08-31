@@ -108,21 +108,19 @@ object VulcanizacionRepository {
         FirebaseFirestore.getInstance()
             .collection(COLECCION_TOMAS_HUELLA)
             .whereEqualTo("uidUsuario", uid)
-            .whereIn(
-                "estadoRegistro",
-                listOf(
-                    ESTADO_BORRADOR,
-                    ESTADO_DEVUELTO
-                )
-            )
             .get()
             .addOnSuccessListener { resultado ->
 
-                val registros = resultado.documents.map { documento ->
-                    documento.data.orEmpty().toMutableMap().apply {
-                        this["id"] = documento.id
+                val registros = resultado.documents
+                    .map { documento ->
+                        documento.data.orEmpty().toMutableMap().apply {
+                            this["id"] = documento.id
+                        }
                     }
-                }
+                    .filter { registro ->
+                        registro["estadoRegistro"]?.toString()?.uppercase() in
+                                listOf(ESTADO_BORRADOR, ESTADO_DEVUELTO)
+                    }
 
                 onFinalizado(registros)
             }
@@ -508,11 +506,11 @@ object VulcanizacionRepository {
                 .filter { it.isNotBlank() }
                 .firstOrNull { texto ->
                     val valor = texto.trim().replace(',', '.').toDoubleOrNull()
-                    valor == null || valor !in 0.1..30.0
+                    valor == null || valor !in 0.1..26.0
                 }
 
             if (medidaInvalida != null) {
-                return "Cada medida de huella debe estar entre 0.1 y 30 mm. Revisa el valor: $medidaInvalida."
+                return "Cada medida de huella debe estar entre 0.1 y 26 mm. Revisa el valor: $medidaInvalida."
             }
         }
 
@@ -1011,8 +1009,8 @@ object VulcanizacionRepository {
                 return "Debes ingresar el nombre del técnico."
             }
 
-            if (huella != null && huella !in 0.1..30.0) {
-                return "La medida de huella debe estar entre 0.1 y 30 mm."
+            if (huella != null && huella !in 0.1..26.0) {
+                return "La medida de huella debe estar entre 0.1 y 26 mm."
             }
         }
 
