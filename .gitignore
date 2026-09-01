@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+entregables/*
+!entregables/MEV-Mantenimiento-1.1.0-beta06-debug.apk
+tmp/
+documentacion/qa/
+__pycache__/
+*.pyc
