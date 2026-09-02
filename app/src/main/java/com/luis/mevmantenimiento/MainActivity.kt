@@ -81,6 +81,7 @@ import com.luis.mevmantenimiento.data.ReportesRepository
 import com.luis.mevmantenimiento.data.ExportadorReportes
 import com.luis.mevmantenimiento.data.ReporteDatos
 import com.luis.mevmantenimiento.data.FiltrosReporte
+import com.luis.mevmantenimiento.ui.screens.UsuariosScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -1387,6 +1388,14 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
+                                "USUARIOS" -> {
+                                    UsuariosScreen(
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
                                 "MATRIZ_BASE" -> {
                                     MatrizBaseScreen(
                                         importandoActivos = importandoActivos,
@@ -1477,6 +1486,10 @@ class MainActivity : ComponentActivity() {
 
                                                 "Matriz base" -> {
                                                     pantallaActual = "MATRIZ_BASE"
+                                                }
+
+                                                "Usuarios" -> {
+                                                    pantallaActual = "USUARIOS"
                                                 }
 
                                                 "Nuevo mantenimiento" -> {
@@ -2332,7 +2345,9 @@ class MainActivity : ComponentActivity() {
                                                             registrarErrorRevision("Intervenciones: $mensaje")
                                                         }
                                                     )
-                                                }                                                "Reportes" -> {
+                                                }
+
+                                                "Reportes", "Panel gerencial" -> {
                                                 cargandoReportes = true
                                                 mensajeReportes = "Cargando indicadores..."
                                                 resumenReportes = null

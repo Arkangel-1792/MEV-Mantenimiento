@@ -12,8 +12,8 @@ android {
         applicationId = "com.luis.mevmantenimiento"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.1.0-beta06"
+        versionCode = 7
+        versionName = "1.1.0-beta07"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

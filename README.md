@@ -6,12 +6,12 @@ Aplicación Android para registrar, revisar y analizar actividades de mantenimie
 
 ## Estado del proyecto
 
-- Versión: `1.1.0-beta06` (`versionCode 6`)
-- Rama de trabajo: `LuisB/version-web-en-linea`
+- Versión: `1.1.0-beta07` (`versionCode 7`)
+- Rama de trabajo: `LuisB/usuarios-apk`
 - Plataformas: Android 8.0 o superior (`minSdk 26`) y navegador web moderno
 - Estado: versión beta demostrable para evaluación académica
-- Pruebas automatizadas: Android 9 aprobadas y web 17 aprobadas
-- APK de demostración: `entregables/MEV-Mantenimiento-1.1.0-beta06-debug.apk`
+- Pruebas automatizadas: Android 12 aprobadas y web 18 aprobadas
+- APK de demostración: `entregables/MEV-Mantenimiento-1.1.0-beta07-debug.apk`
 - Versión web: `web/` (`2.2.0`), conectada al mismo proyecto Firebase
 
 ## Funcionalidades implementadas
@@ -32,6 +32,7 @@ Aplicación Android para registrar, revisar y analizar actividades de mantenimie
 - Reportes con filtros por proyecto, activo, técnico, estado y fechas.
 - Exportación de reportes a PDF y Excel.
 - Identidad visual propia, icono de aplicación e iconos representativos por módulo.
+- Administración de usuarios desde la APK para el rol `PLANIFICADOR`: creación, edición, activación, inactivación y recuperación de contraseña.
 
 ## Tecnologías
 
@@ -80,7 +81,7 @@ Usuario
 - `JEFE_OPERACIONES`: reportes y consulta de matriz base.
 - `GERENTE_GENERAL`: reportes y opciones gerenciales.
 
-> La versión beta aplica la visibilidad de opciones desde el perfil recuperado de Firestore. Las pantallas completas de administración de usuarios y panel gerencial quedan como trabajo futuro; tampoco sustituyen la necesidad de reglas de seguridad de Firestore para una publicación productiva.
+> La versión beta aplica la visibilidad de opciones desde el perfil recuperado de Firestore. La administración de usuarios está disponible para `PLANIFICADOR`; el panel gerencial especializado queda como trabajo futuro. La interfaz no sustituye la necesidad de reglas de seguridad de Firestore para una publicación productiva.
 
 ## Requisitos de desarrollo
 
@@ -94,7 +95,7 @@ Usuario
 
 1. Habilitar el método de inicio de sesión **Correo/contraseña**.
 2. Crear los perfiles de usuario en la colección `usuarios`, usando el UID de Authentication como ID del documento.
-3. Incluir al menos: `nombres`, `apellidos`, `cargo`, `rol`, `estado` y `email`.
+3. Incluir al menos: `nombres`, `apellidos`, `cargo`, `rol`, `estadoUsuario` y `email`.
 4. Cargar el catálogo en la colección `activos`; el archivo base de ejemplo se encuentra en `app/src/main/assets/inventario_activos_firestore.json`.
 5. Definir y probar reglas de seguridad antes de usar información real.
 
@@ -106,7 +107,7 @@ Ejemplo mínimo de perfil:
   "apellidos": "Demostración",
   "cargo": "Técnico mecánico",
   "rol": "TECNICO_MECANICO",
-  "estado": "ACTIVO",
+  "estadoUsuario": "ACTIVO",
   "email": "usuario@ejemplo.com"
 }
 ```
@@ -172,9 +173,9 @@ Las versiones editables en Word se conservan en la misma carpeta.
 
 ## Limitaciones conocidas y trabajo futuro
 
-- Completar las pantallas de administración de usuarios y panel gerencial.
+- Completar el panel gerencial especializado.
 - Implementar reglas de seguridad de Firestore por rol y validar la autorización también en backend.
-- Incorporar recuperación de contraseña y gestión completa de cuentas.
+- Incorporar cambio de correo y autoservicio avanzado de cuentas.
 - Añadir adjuntos fotográficos mediante almacenamiento seguro.
 - Ampliar pruebas instrumentadas, de conectividad, rendimiento y usabilidad con usuarios reales.
 - Preparar una compilación `release` firmada; el APK incluido es de depuración para demostración.
