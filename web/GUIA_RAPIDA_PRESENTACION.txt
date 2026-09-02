@@ -1,0 +1,72 @@
+MEV MANTENIMIENTO WEB 2.1
+GUÍA RÁPIDA PARA LA PRESENTACIÓN
+
+ANTES DE PRESENTAR
+1. Descomprime la carpeta completa.
+2. Haz doble clic en COMPROBAR_PROYECTO.bat.
+3. Confirma que aparezca: "El proyecto superó todas las comprobaciones".
+4. Cierra esa ventana.
+
+PARA ABRIR EL SISTEMA
+1. Haz doble clic en INICIAR_WEB.bat.
+2. Mantén abierta la ventana negra.
+3. Espera a que el navegador muestre la pantalla de ingreso.
+
+ACCESO RECOMENDADO PARA LA EXPOSICIÓN
+1. En "Perfil de demostración" selecciona PLANIFICADOR.
+2. Pulsa "Entrar en modo demostración".
+3. Este acceso no necesita usuario, contraseña ni conexión con Firebase.
+
+RECORRIDO SUGERIDO
+1. INICIO
+   - Explica los indicadores y los accesos según el rol.
+
+2. NUEVO MANTENIMIENTO
+   - Selecciona un activo.
+   - Muestra cómo la ficha reconoce indicador, ubicación y estado.
+   - Registra una acción y guarda como borrador.
+
+3. MIS BORRADORES
+   - Abre el registro anterior.
+   - Corrige o completa la información y envíala a revisión.
+
+4. TOMA GENERAL DE HUELLA
+   - Selecciona EVOLQ0087.
+   - Explica que aparecen automáticamente las posiciones configuradas.
+   - Ingresa una huella igual o menor a 6 mm para mostrar la alerta crítica.
+
+5. INTERVENCIÓN DE LLANTA
+   - Muestra los tipos de intervención y la validación de posiciones.
+
+6. REVISIÓN DE REGISTROS
+   - Aprueba un registro.
+   - Devuelve otro e indica un motivo.
+
+7. REPORTES
+   - Muestra indicadores y gráficos.
+   - Aplica un filtro.
+   - Enseña los botones "Exportar Excel" e "Imprimir / PDF".
+
+8. MATRIZ BASE
+   - Indica que incluye 162 activos.
+   - Busca un código y abre su detalle.
+   - Cambia las posiciones de llanta y comprueba que los formularios generan P1-PN automáticamente.
+
+9. USUARIOS
+   - Crea un perfil de ejemplo.
+   - Explica los ocho roles, edición de datos, activación/inactivación y recuperación de contraseña.
+
+VOZ
+- Usa Google Chrome o Microsoft Edge.
+- Permite el acceso al micrófono.
+- Pulsa "Dictar datos", indica varios campos y pulsa "Finalizar dictado".
+- Comprueba que kilometraje, horómetro y los demás datos se separaron correctamente.
+- Revisa los campos antes de guardar.
+
+SI FIREBASE O INTERNET FALLA
+- Cierra sesión y vuelve a ingresar en modo demostración.
+- Los datos de demostración no modifican la base real.
+
+PARA CERRAR
+- Cierra la pestaña del navegador.
+- En la ventana negra presiona Ctrl + C y luego cierra la ventana.

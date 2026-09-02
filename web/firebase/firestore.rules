@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function active() {
+      return signedIn() && profile().estadoUsuario == 'ACTIVO';
+    }
+
+    function roleIn(roles) {
+      return active() && profile().rol in roles;
+    }
+
+    function reviewer() {
+      return roleIn([
+        'SUPERVISOR_MANTENIMIENTO',
+        'ANALISTA_MANTENIMIENTO',
+        'ASISTENTE_PLANIFICACION',
+        'PLANIFICADOR'
+      ]);
+    }
+
+    function reporter() {
+      return reviewer() || roleIn(['JEFE_OPERACIONES', 'GERENTE_GENERAL']);
+    }
+
+    function validUserProfile() {
+      return request.resource.data.nombres is string
+        && request.resource.data.apellidos is string
+        && request.resource.data.email is string
+        && request.resource.data.cargo is string
+        && request.resource.data.rol in [
+          'TECNICO_MECANICO',
+          'VULCANIZADOR',
+          'SUPERVISOR_MANTENIMIENTO',
+          'ANALISTA_MANTENIMIENTO',
+          'ASISTENTE_PLANIFICACION',
+          'PLANIFICADOR',
+          'JEFE_OPERACIONES',
+          'GERENTE_GENERAL'
+        ]
+        && request.resource.data.estadoUsuario in ['ACTIVO', 'INACTIVO'];
+    }
+
+    function validNewRecord() {
+      return request.resource.data.uidUsuario == request.auth.uid
+        && request.resource.data.estadoRegistro in ['BORRADOR', 'ENVIADO'];
+    }
+
+    function ownerCorrection() {
+      return resource.data.uidUsuario == request.auth.uid
+        && resource.data.estadoRegistro in ['BORRADOR', 'DEVUELTO']
+        && request.resource.data.estadoRegistro in ['BORRADOR', 'ENVIADO']
+        && request.resource.data.uidUsuario == request.auth.uid;
+    }
+
+    function reviewTransition() {
+      return reviewer()
+        && resource.data.estadoRegistro == 'ENVIADO'
+        && request.resource.data.estadoRegistro in ['APROBADO', 'DEVUELTO'];
+    }
+
+    match /usuarios/{uid} {
+      allow read: if active() && (request.auth.uid == uid || roleIn(['PLANIFICADOR']));
+      allow create, update: if roleIn(['PLANIFICADOR']) && validUserProfile();
+      allow delete: if false;
+    }
+
+    match /activos/{assetId} {
+      allow read: if active();
+      allow update: if roleIn(['PLANIFICADOR']);
+      allow create, delete: if false;
+    }
+
+    match /registros_mantenimiento/{recordId} {
+      allow read: if active() && (resource.data.uidUsuario == request.auth.uid || reporter());
+      allow create: if active() && validNewRecord();
+      allow update: if active() && (ownerCorrection() || reviewTransition());
+      allow delete: if false;
+    }
+
+    match /tomas_huella/{recordId} {
+      allow read: if active() && (resource.data.uidUsuario == request.auth.uid || reporter());
+      allow create: if active() && validNewRecord();
+      allow update: if active() && (ownerCorrection() || reviewTransition());
+      allow delete: if false;
+    }
+
+    match /intervenciones_llanta/{recordId} {
+      allow read: if active() && (resource.data.uidUsuario == request.auth.uid || reporter());
+      allow create: if active() && validNewRecord();
+      allow update: if active() && (ownerCorrection() || reviewTransition());
+      allow delete: if false;
+    }
+  }
+}

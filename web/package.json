@@ -1,0 +1,25 @@
+{
+  "name": "mev-mantenimiento-web",
+  "private": true,
+  "version": "2.2.0",
+  "description": "Sistema web de mantenimiento y vulcanización para la flota MEV.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "wrangler dev --config dist/server/wrangler.json",
+    "start:legacy": "node servidor.js",
+    "check": "node --check src/main.js && node --check src/core.js && node --check src/data-service.js && node --check src/export.js && node --check src/voice.js",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@openai/sites-vite-plugin": "0.2.0",
+    "vite": "8.0.13",
+    "wrangler": "4.92.0"
+  }
+}

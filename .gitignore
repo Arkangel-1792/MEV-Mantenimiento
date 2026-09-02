@@ -19,3 +19,9 @@ tmp/
 documentacion/qa/
 __pycache__/
 *.pyc
+/.pnpm-store/
+/web/node_modules/
+/web/dist/
+/web/.wrangler/
+/web/.dev.vars*
+/web/*.tgz

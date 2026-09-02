@@ -7,11 +7,12 @@ Aplicación Android para registrar, revisar y analizar actividades de mantenimie
 ## Estado del proyecto
 
 - Versión: `1.1.0-beta06` (`versionCode 6`)
-- Rama de trabajo: `LuisB/registros-aprobados-validacion-huellas`
-- Plataforma: Android 8.0 o superior (`minSdk 26`)
+- Rama de trabajo: `LuisB/version-web-en-linea`
+- Plataformas: Android 8.0 o superior (`minSdk 26`) y navegador web moderno
 - Estado: versión beta demostrable para evaluación académica
-- Pruebas unitarias: 9 aprobadas, 0 fallos
+- Pruebas automatizadas: Android 9 aprobadas y web 17 aprobadas
 - APK de demostración: `entregables/MEV-Mantenimiento-1.1.0-beta06-debug.apk`
+- Versión web: `web/` (`2.2.0`), conectada al mismo proyecto Firebase
 
 ## Funcionalidades implementadas
 
@@ -41,6 +42,7 @@ Aplicación Android para registrar, revisar y analizar actividades de mantenimie
 - Cloud Firestore
 - Android `SpeechRecognizer`
 - JUnit 4
+- JavaScript modular, Vite y Cloudflare Workers para la versión web
 
 ## Arquitectura funcional
 
