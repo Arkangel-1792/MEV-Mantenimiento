@@ -33,7 +33,8 @@ data class RegistroHistorialIntervencion(
     val observaciones: String,
     val nombreTecnico: String,
     val estadoRegistro: String,
-    val motivoDevolucion: String = ""
+    val motivoDevolucion: String = "",
+    val fechaRegistro: String = ""
 )
 
 @Composable
@@ -77,6 +78,9 @@ fun HistorialIntervencionScreen(
                     ) {
                         Text(registro.codigoActivo, style = MaterialTheme.typography.titleMedium)
                         Text("Estado: ${registro.estadoRegistro}")
+                        if (registro.fechaRegistro.isNotBlank()) {
+                            Text("Fecha: ${registro.fechaRegistro}")
+                        }
                         Text("Intervención: ${registro.tipoIntervencion}")
                         Text("Posición: ${registro.posicion}")
                         Text("Huella: ${registro.huella?.let { "$it mm" } ?: "Sin registrar"}")

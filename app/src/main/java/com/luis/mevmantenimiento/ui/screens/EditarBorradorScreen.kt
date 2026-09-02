@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun EditarBorradorScreen(
     borrador: BorradorMantenimiento,
+    activos: List<ActivoResumen>,
     guardando: Boolean,
     mensaje: String,
     onActualizarBorrador: (
@@ -56,6 +57,9 @@ fun EditarBorradorScreen(
     onVolver: () -> Unit
 ) {
     val esDevuelto = borrador.estadoRegistro == "DEVUELTO"
+    val activo = activos.firstOrNull {
+        it.codigo.equals(borrador.codigoActivo, ignoreCase = true)
+    }
 
     var tipoServicio by remember(borrador.id) {
         mutableStateOf(borrador.tipoServicio)
@@ -83,6 +87,18 @@ fun EditarBorradorScreen(
 
     var numeroPedido by remember(borrador.id) {
         mutableStateOf(borrador.numeroPedido)
+    }
+
+    val errorIndicadores = validarIndicadoresActivo(
+        activo = activo,
+        kilometraje = kilometraje,
+        horometro = horometro
+    )
+
+    val servicioPermitido = when (tipoServicio) {
+        "PREVENTIVO" -> activo?.permitePreventivo == true
+        "CORRECTIVO" -> activo?.permiteCorrectivo == true
+        else -> false
     }
 
     Column(
@@ -171,14 +187,14 @@ fun EditarBorradorScreen(
             FilterChip(
                 selected = tipoServicio == "PREVENTIVO",
                 onClick = { tipoServicio = "PREVENTIVO" },
-                enabled = !guardando,
+                enabled = !guardando && activo?.permitePreventivo != false,
                 label = { Text("Preventivo") }
             )
 
             FilterChip(
                 selected = tipoServicio == "CORRECTIVO",
                 onClick = { tipoServicio = "CORRECTIVO" },
-                enabled = !guardando,
+                enabled = !guardando && activo?.permiteCorrectivo != false,
                 label = { Text("Correctivo") }
             )
         }
@@ -187,11 +203,24 @@ fun EditarBorradorScreen(
             value = kilometraje,
             onValueChange = { kilometraje = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Kilometraje") },
+            label = {
+                Text(
+                    if (activo?.usaKilometraje == true) {
+                        "Kilometraje *"
+                    } else {
+                        "Kilometraje"
+                    }
+                )
+            },
+            supportingText = {
+                if (activo?.usaKilometraje == false) {
+                    Text("No aplica para el indicador de este activo")
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),
-            enabled = !guardando,
+            enabled = !guardando && activo?.usaKilometraje != false,
             singleLine = true
         )
 
@@ -199,11 +228,24 @@ fun EditarBorradorScreen(
             value = horometro,
             onValueChange = { horometro = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Horómetro") },
+            label = {
+                Text(
+                    if (activo?.usaHorometro == true) {
+                        "Horómetro *"
+                    } else {
+                        "Horómetro"
+                    }
+                )
+            },
+            supportingText = {
+                if (activo?.usaHorometro == false) {
+                    Text("No aplica para el indicador de este activo")
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),
-            enabled = !guardando,
+            enabled = !guardando && activo?.usaHorometro != false,
             singleLine = true
         )
 
@@ -285,7 +327,11 @@ fun EditarBorradorScreen(
                     numeroPedido
                 )
             },
-            enabled = !guardando && accionEjecutada.isNotBlank(),
+            enabled =
+                !guardando &&
+                        accionEjecutada.isNotBlank() &&
+                        servicioPermitido &&
+                        errorIndicadores == null,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(

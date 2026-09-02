@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,9 +93,38 @@ fun IntervencionLlantaScreen(
         )
     }
 
+    val cantidadPosiciones = cantidadPosicionesDelActivo(activoEncontrado)
+
+    val errorIndicadores = validarIndicadoresActivo(
+        activo = activoEncontrado,
+        kilometraje = kilometraje,
+        horometro = horometro
+    )
+
+    fun posicionValida(): Boolean {
+        val numero = posicion.toIntOrNull() ?: return false
+        return numero in 1..cantidadPosiciones
+    }
+
+    LaunchedEffect(activoEncontrado?.codigo) {
+        val activo = activoEncontrado
+
+        if (activo != null && !activo.usaKilometraje) {
+            kilometraje = ""
+        }
+
+        if (activo != null && !activo.usaHorometro) {
+            horometro = ""
+        }
+
+        if (posicion.isNotBlank() && !posicionValida()) {
+            posicion = ""
+        }
+    }
+
     fun guardarDesdeVoz(
         enviar: Boolean
-    ) {
+    ): String {
         val activoActual = activos.firstOrNull {
             it.codigo.equals(
                 codigoActivo.trim(),
@@ -103,28 +133,34 @@ fun IntervencionLlantaScreen(
         }
 
         if (activoActual == null) {
-            mensajeVoz =
-                "Primero debes seleccionar un activo válido."
-            return
+            return "Primero debes seleccionar un activo válido."
         }
 
         if (enviar) {
+            val errorIndicador = validarIndicadoresActivo(
+                activo = activoActual,
+                kilometraje = kilometraje,
+                horometro = horometro
+            )
+
+            if (errorIndicador != null) {
+                return errorIndicador
+            }
+
             if (tipoIntervencion.isBlank()) {
-                mensajeVoz =
-                    "Debes indicar el tipo de intervención."
-                return
+                return "Debes indicar el tipo de intervención."
             }
 
             if (posicion.isBlank()) {
-                mensajeVoz =
-                    "Debes indicar la posición."
-                return
+                return "Debes indicar la posición."
+            }
+
+            if (!posicionValida()) {
+                return "La posición debe estar entre 1 y $cantidadPosiciones."
             }
 
             if (nombreTecnico.isBlank()) {
-                mensajeVoz =
-                    "Debes indicar el nombre del técnico."
-                return
+                return "Debes indicar el nombre del técnico."
             }
 
             onEnviar(
@@ -143,8 +179,7 @@ fun IntervencionLlantaScreen(
                 nombreTecnico
             )
 
-            mensajeVoz =
-                "Orden de envío ejecutada."
+            return "Orden de envío ejecutada."
         } else {
             onGuardarBorrador(
                 codigoActivo,
@@ -162,8 +197,7 @@ fun IntervencionLlantaScreen(
                 nombreTecnico
             )
 
-            mensajeVoz =
-                "Orden de guardar borrador ejecutada."
+            return "Orden de guardar borrador ejecutada."
         }
     }
 
@@ -186,15 +220,17 @@ fun IntervencionLlantaScreen(
                 } else {
                     codigoActivo = activo.codigo
 
-                    kilometraje =
-                        activo.kilometraje
-                            ?.toString()
-                            .orEmpty()
+                    kilometraje = if (activo.usaKilometraje) {
+                        activo.kilometraje?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
 
-                    horometro =
-                        activo.horometro
-                            ?.toString()
-                            .orEmpty()
+                    horometro = if (activo.usaHorometro) {
+                        activo.horometro?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
 
                     "Activo ${activo.codigo} seleccionado."
                 }
@@ -221,8 +257,15 @@ fun IntervencionLlantaScreen(
             }
 
             is VoiceCommand.ActualizarPosicionLlanta -> {
-                posicion = comando.posicion.toString()
-                "Posición: ${comando.posicion}."
+                if (
+                    activoEncontrado != null &&
+                    comando.posicion !in 1..cantidadPosiciones
+                ) {
+                    "La posición debe estar entre 1 y $cantidadPosiciones."
+                } else {
+                    posicion = comando.posicion.toString()
+                    "Posición: ${comando.posicion}."
+                }
             }
 
             is VoiceCommand.ActualizarHuellaLlanta -> {
@@ -261,17 +304,11 @@ fun IntervencionLlantaScreen(
             }
 
             VoiceCommand.GuardarBorrador -> {
-                guardarDesdeVoz(
-                    enviar = false
-                )
-                "Guardar borrador."
+                guardarDesdeVoz(enviar = false)
             }
 
             VoiceCommand.EnviarRegistro -> {
-                guardarDesdeVoz(
-                    enviar = true
-                )
-                "Enviar registro."
+                guardarDesdeVoz(enviar = true)
             }
 
             is VoiceCommand.Desconocido -> {
@@ -423,13 +460,27 @@ fun IntervencionLlantaScreen(
                 modifier =
                     Modifier.fillMaxWidth(),
                 label = {
-                    Text("Kilometraje")
+                    Text(
+                        if (activoEncontrado?.usaKilometraje == true) {
+                            "Kilometraje *"
+                        } else {
+                            "Kilometraje"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoEncontrado?.usaKilometraje == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
                 },
                 keyboardOptions =
                     KeyboardOptions(
                         keyboardType =
                             KeyboardType.Decimal
                     ),
+                enabled =
+                    !guardando &&
+                            activoEncontrado?.usaKilometraje != false,
                 singleLine = true
             )
 
@@ -441,13 +492,27 @@ fun IntervencionLlantaScreen(
                 modifier =
                     Modifier.fillMaxWidth(),
                 label = {
-                    Text("Horómetro")
+                    Text(
+                        if (activoEncontrado?.usaHorometro == true) {
+                            "Horómetro *"
+                        } else {
+                            "Horómetro"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoEncontrado?.usaHorometro == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
                 },
                 keyboardOptions =
                     KeyboardOptions(
                         keyboardType =
                             KeyboardType.Decimal
                     ),
+                enabled =
+                    !guardando &&
+                            activoEncontrado?.usaHorometro != false,
                 singleLine = true
             )
 
@@ -496,7 +561,7 @@ fun IntervencionLlantaScreen(
             OutlinedTextField(
                 value = posicion,
                 onValueChange = {
-                    posicion = it
+                    posicion = it.filter(Char::isDigit).take(2)
                 },
                 modifier =
                     Modifier.fillMaxWidth(),
@@ -504,7 +569,13 @@ fun IntervencionLlantaScreen(
                     Text("Posición")
                 },
                 supportingText = {
-                    Text("Ejemplo: 3")
+                    Text(
+                        if (cantidadPosiciones > 0) {
+                            "Posiciones disponibles: 1 a $cantidadPosiciones"
+                        } else {
+                            "Selecciona primero un activo"
+                        }
+                    )
                 },
                 keyboardOptions =
                     KeyboardOptions(
@@ -524,6 +595,12 @@ fun IntervencionLlantaScreen(
                 label = {
                     Text("Huella (mm)")
                 },
+                supportingText = {
+                    if (esHuellaCritica(huella)) {
+                        Text("Huella crítica: 6 mm o menos")
+                    }
+                },
+                isError = esHuellaCritica(huella),
                 keyboardOptions =
                     KeyboardOptions(
                         keyboardType =
@@ -638,6 +715,7 @@ fun IntervencionLlantaScreen(
                 },
                 enabled =
                     activoEncontrado != null &&
+                            (posicion.isBlank() || posicionValida()) &&
                             !guardando,
                 modifier =
                     Modifier.fillMaxWidth()
@@ -664,9 +742,10 @@ fun IntervencionLlantaScreen(
                     )
                 },
                 enabled =
-                    activoEncontrado != null &&
+                            activoEncontrado != null &&
+                            errorIndicadores == null &&
                             tipoIntervencion.isNotBlank() &&
-                            posicion.isNotBlank() &&
+                            posicionValida() &&
                             nombreTecnico.isNotBlank() &&
                             !guardando,
                 modifier =

@@ -137,6 +137,7 @@ fun MisBorradoresScreen(
                                 Text(borrador.codigoActivo, style = MaterialTheme.typography.titleMedium)
                                 Text(if (devuelto) "Estado: DEVUELTO PARA CORRECCIÓN" else "Estado: BORRADOR")
                                 Text("Proyecto: ${borrador.proyecto.ifBlank { "Sin registrar" }}")
+                                Text("Ciudad: ${borrador.ciudad.ifBlank { "Sin registrar" }}")
                                 Text("Estado general: ${borrador.estadoGeneral.ifBlank { "Sin registrar" }}")
                                 if (devuelto) {
                                     Text(

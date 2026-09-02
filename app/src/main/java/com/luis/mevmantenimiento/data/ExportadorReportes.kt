@@ -462,6 +462,7 @@ object ExportadorReportes {
             "ID",
             "Activo",
             "Proyecto",
+            "Ciudad",
             "Kilometraje",
             "Horómetro"
         )
@@ -475,6 +476,7 @@ object ExportadorReportes {
                 "Estado general",
                 "Novedad",
                 "Técnico",
+                "Foto",
                 "Estado",
                 "Usuario",
                 "Fecha creación",
@@ -490,6 +492,7 @@ object ExportadorReportes {
                         texto(registro["id"]),
                         texto(registro["codigoActivo"]),
                         texto(registro["proyecto"]),
+                        texto(registro["ciudad"]),
                         numero(registro["kilometraje"]),
                         numero(registro["horometro"])
                     )
@@ -505,6 +508,7 @@ object ExportadorReportes {
                             texto(registro["estadoGeneral"]),
                             texto(registro["novedad"]),
                             texto(registro["nombreTecnico"]),
+                            texto(registro["fotoUrl"]),
                             texto(registro["estadoRegistro"]),
                             texto(registro["emailUsuario"]),
                             fecha(registro["fechaCreacion"]),

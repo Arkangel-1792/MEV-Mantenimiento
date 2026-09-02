@@ -1,0 +1,29 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "registros_mantenimiento",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uidUsuario", "order": "ASCENDING" },
+        { "fieldPath": "estadoRegistro", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tomas_huella",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uidUsuario", "order": "ASCENDING" },
+        { "fieldPath": "estadoRegistro", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "intervenciones_llanta",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uidUsuario", "order": "ASCENDING" },
+        { "fieldPath": "estadoRegistro", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

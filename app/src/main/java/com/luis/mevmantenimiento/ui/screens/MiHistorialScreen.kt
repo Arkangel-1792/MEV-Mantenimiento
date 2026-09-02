@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -31,7 +32,8 @@ data class RegistroHistorial(
     val ordenTrabajo: String,
     val numeroPedido: String,
     val estadoRegistro: String,
-    val motivoDevolucion: String = ""
+    val motivoDevolucion: String = "",
+    val fechaRegistro: String = ""
 )
 
 @Composable
@@ -195,6 +197,10 @@ private fun TarjetaMantenimiento(
 
             EstadoHistorial(registro.estadoRegistro)
 
+            if (registro.fechaRegistro.isNotBlank()) {
+                Text("Fecha: ${registro.fechaRegistro}")
+            }
+
             Text("Servicio: ${registro.tipoServicio}")
             Text(
                 "Kilometraje: ${registro.kilometraje ?: "Sin registro"} · " +
@@ -229,6 +235,8 @@ private fun TarjetaMantenimiento(
 private fun TarjetaHuella(
     registro: RegistroHistorialHuella
 ) {
+    val uriHandler = LocalUriHandler.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -246,8 +254,16 @@ private fun TarjetaHuella(
 
             EstadoHistorial(registro.estadoRegistro)
 
+            if (registro.fechaRegistro.isNotBlank()) {
+                Text("Fecha: ${registro.fechaRegistro}")
+            }
+
             if (registro.proyecto.isNotBlank()) {
                 Text("Proyecto: ${registro.proyecto}")
+            }
+
+            if (registro.ciudad.isNotBlank()) {
+                Text("Ciudad: ${registro.ciudad}")
             }
 
             Text(
@@ -271,6 +287,17 @@ private fun TarjetaHuella(
 
             if (registro.nombreTecnico.isNotBlank()) {
                 Text("Técnico: ${registro.nombreTecnico}")
+            }
+
+            if (registro.fotoUrl.isNotBlank()) {
+                OutlinedButton(
+                    onClick = {
+                        uriHandler.openUri(registro.fotoUrl)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Abrir fotografía")
+                }
             }
 
             MotivoDevuelto(
@@ -301,6 +328,10 @@ private fun TarjetaIntervencion(
             )
 
             EstadoHistorial(registro.estadoRegistro)
+
+            if (registro.fechaRegistro.isNotBlank()) {
+                Text("Fecha: ${registro.fechaRegistro}")
+            }
 
             Text("Intervención: ${registro.tipoIntervencion}")
             Text("Posición: ${registro.posicion.ifBlank { "Sin registrar" }}")

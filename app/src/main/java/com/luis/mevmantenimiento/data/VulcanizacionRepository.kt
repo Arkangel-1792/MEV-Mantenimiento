@@ -1,8 +1,11 @@
 package com.luis.mevmantenimiento.data
 
+import android.net.Uri
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 object VulcanizacionRepository {
 
@@ -20,12 +23,14 @@ object VulcanizacionRepository {
     fun guardarTomaHuella(
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
         estadoGeneral: String,
         novedad: String,
         nombreTecnico: String,
+        fotoUri: String,
         estadoRegistro: String,
         onFinalizado: (idRegistro: String) -> Unit,
         onError: (String) -> Unit
@@ -60,6 +65,7 @@ object VulcanizacionRepository {
         val datos = construirDatos(
             codigoActivo = codigoNormalizado,
             proyecto = proyecto,
+            ciudad = ciudad,
             kilometraje = kilometraje,
             horometro = horometro,
             huellas = huellas,
@@ -79,15 +85,51 @@ object VulcanizacionRepository {
                 FieldValue.serverTimestamp()
         }
 
-        FirebaseFirestore.getInstance()
+        val documento = FirebaseFirestore.getInstance()
             .collection(COLECCION_TOMAS_HUELLA)
-            .add(datos)
-            .addOnSuccessListener { documento ->
-                onFinalizado(documento.id)
+            .document()
+
+        fun guardarDatos() {
+            documento.set(datos)
+                .addOnSuccessListener {
+                    onFinalizado(documento.id)
+                }
+                .addOnFailureListener { error ->
+                    onError(
+                        "No se pudo guardar la toma de huella: " +
+                                error.message.orEmpty()
+                    )
+                }
+        }
+
+        if (fotoUri.isBlank()) {
+            guardarDatos()
+            return
+        }
+
+        val rutaFoto =
+            "evidencias_huellas/${usuarioActual.uid}/${documento.id}.jpg"
+
+        val referenciaFoto = FirebaseStorage.getInstance()
+            .reference
+            .child(rutaFoto)
+
+        referenciaFoto.putFile(Uri.parse(fotoUri))
+            .continueWithTask { tarea ->
+                if (!tarea.isSuccessful) {
+                    throw tarea.exception
+                        ?: IllegalStateException("No se pudo cargar la fotografía.")
+                }
+                referenciaFoto.downloadUrl
+            }
+            .addOnSuccessListener { url ->
+                datos["fotoUrl"] = url.toString()
+                datos["fotoStoragePath"] = rutaFoto
+                guardarDatos()
             }
             .addOnFailureListener { error ->
                 onError(
-                    "No se pudo guardar la toma de huella: " +
+                    "No se pudo cargar la fotografía: " +
                             error.message.orEmpty()
                 )
             }
@@ -165,6 +207,7 @@ object VulcanizacionRepository {
                             ESTADO_DEVUELTO
                         )
                     }
+                    .sortedByDescending(::fechaOrden)
 
                 onFinalizado(registros)
             }
@@ -180,12 +223,14 @@ object VulcanizacionRepository {
         idRegistro: String,
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
         estadoGeneral: String,
         novedad: String,
         nombreTecnico: String,
+        fotoUri: String,
         onFinalizado: () -> Unit,
         onError: (String) -> Unit
     ) {
@@ -193,12 +238,14 @@ object VulcanizacionRepository {
             idRegistro = idRegistro,
             codigoActivo = codigoActivo,
             proyecto = proyecto,
+            ciudad = ciudad,
             kilometraje = kilometraje,
             horometro = horometro,
             huellas = huellas,
             estadoGeneral = estadoGeneral,
             novedad = novedad,
             nombreTecnico = nombreTecnico,
+            fotoUri = fotoUri,
             nuevoEstado = ESTADO_BORRADOR,
             onFinalizado = onFinalizado,
             onError = onError
@@ -209,12 +256,14 @@ object VulcanizacionRepository {
         idRegistro: String,
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
         estadoGeneral: String,
         novedad: String,
         nombreTecnico: String,
+        fotoUri: String,
         onFinalizado: () -> Unit,
         onError: (String) -> Unit
     ) {
@@ -222,12 +271,14 @@ object VulcanizacionRepository {
             idRegistro = idRegistro,
             codigoActivo = codigoActivo,
             proyecto = proyecto,
+            ciudad = ciudad,
             kilometraje = kilometraje,
             horometro = horometro,
             huellas = huellas,
             estadoGeneral = estadoGeneral,
             novedad = novedad,
             nombreTecnico = nombreTecnico,
+            fotoUri = fotoUri,
             nuevoEstado = ESTADO_ENVIADO,
             onFinalizado = onFinalizado,
             onError = onError
@@ -238,12 +289,14 @@ object VulcanizacionRepository {
         idRegistro: String,
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
         estadoGeneral: String,
         novedad: String,
         nombreTecnico: String,
+        fotoUri: String,
         nuevoEstado: String,
         onFinalizado: () -> Unit,
         onError: (String) -> Unit
@@ -280,6 +333,7 @@ object VulcanizacionRepository {
         val datos = construirDatos(
             codigoActivo = codigoNormalizado,
             proyecto = proyecto,
+            ciudad = ciudad,
             kilometraje = kilometraje,
             horometro = horometro,
             huellas = huellas,
@@ -296,16 +350,51 @@ object VulcanizacionRepository {
                 FieldValue.serverTimestamp()
         }
 
-        FirebaseFirestore.getInstance()
+        val documento = FirebaseFirestore.getInstance()
             .collection(COLECCION_TOMAS_HUELLA)
             .document(idRegistro)
-            .update(datos)
-            .addOnSuccessListener {
-                onFinalizado()
+
+        fun actualizarDatos() {
+            documento.update(datos)
+                .addOnSuccessListener {
+                    onFinalizado()
+                }
+                .addOnFailureListener { error ->
+                    onError(
+                        "No se pudo actualizar la toma de huella: " +
+                                error.message.orEmpty()
+                    )
+                }
+        }
+
+        if (fotoUri.isBlank()) {
+            actualizarDatos()
+            return
+        }
+
+        val rutaFoto =
+            "evidencias_huellas/${usuarioActual.uid}/$idRegistro.jpg"
+
+        val referenciaFoto = FirebaseStorage.getInstance()
+            .reference
+            .child(rutaFoto)
+
+        referenciaFoto.putFile(Uri.parse(fotoUri))
+            .continueWithTask { tarea ->
+                if (!tarea.isSuccessful) {
+                    throw tarea.exception
+                        ?: IllegalStateException("No se pudo cargar la fotografía.")
+                }
+                referenciaFoto.downloadUrl
+            }
+            .addOnSuccessListener { url ->
+                datos["fotoUrl"] = url.toString()
+                datos["fotoStoragePath"] = rutaFoto
+                actualizarDatos()
             }
             .addOnFailureListener { error ->
                 onError(
-                    "No se pudo actualizar la toma de huella: " +
+                    "No se pudo cargar la fotografía: " +
                             error.message.orEmpty()
                 )
             }
@@ -426,6 +515,7 @@ object VulcanizacionRepository {
     private fun construirDatos(
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
@@ -440,6 +530,7 @@ object VulcanizacionRepository {
         val datos = hashMapOf<String, Any?>(
             "codigoActivo" to codigoActivo,
             "proyecto" to proyecto.trim(),
+            "ciudad" to ciudad.trim(),
             "kilometraje" to convertirNumero(kilometraje),
             "horometro" to convertirNumero(horometro),
             "estadoGeneral" to estadoGeneral.trim(),
@@ -640,6 +731,7 @@ object VulcanizacionRepository {
                             ESTADO_DEVUELTO
                         )
                     }
+                    .sortedByDescending(::fechaOrden)
 
                 onFinalizado(registros)
             }
@@ -978,5 +1070,15 @@ object VulcanizacionRepository {
             .trim()
             .replace(",", ".")
             .toDoubleOrNull()
+    }
+
+    private fun fechaOrden(
+        registro: Map<String, Any?>
+    ): Long {
+        return (
+                registro["fechaEnvio"] as? Timestamp
+                    ?: registro["fechaActualizacion"] as? Timestamp
+                    ?: registro["fechaCreacion"] as? Timestamp
+                )?.toDate()?.time ?: 0L
     }
 }

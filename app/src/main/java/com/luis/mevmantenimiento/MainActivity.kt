@@ -44,6 +44,13 @@ import com.luis.mevmantenimiento.ui.screens.MenuPrincipalScreen
 import com.luis.mevmantenimiento.ui.screens.MatrizBaseScreen
 import com.luis.mevmantenimiento.ui.screens.ActivoResumen
 import com.luis.mevmantenimiento.ui.screens.ActivosScreen
+import com.luis.mevmantenimiento.ui.screens.GestionActivoScreen
+import com.luis.mevmantenimiento.ui.screens.activoResumenDesdeMapa
+import com.luis.mevmantenimiento.ui.screens.ProyectosScreen
+import com.luis.mevmantenimiento.ui.screens.UsuariosScreen
+import com.luis.mevmantenimiento.ui.screens.VulcanizacionMenuScreen
+import com.luis.mevmantenimiento.ui.screens.formatearFechaRegistro
+import com.luis.mevmantenimiento.data.ActivosRepository
 import com.luis.mevmantenimiento.data.ImportadorActivos
 import com.luis.mevmantenimiento.ui.screens.DetalleActivoScreen
 import com.luis.mevmantenimiento.ui.screens.NuevoMantenimientoScreen
@@ -102,6 +109,15 @@ class MainActivity : ComponentActivity() {
                 }
                 var activoSeleccionado by remember {
                     mutableStateOf<ActivoResumen?>(null)
+                }
+                var activoEnEdicion by remember {
+                    mutableStateOf<ActivoResumen?>(null)
+                }
+                var guardandoActivo by remember {
+                    mutableStateOf(false)
+                }
+                var mensajeGestionActivo by remember {
+                    mutableStateOf("")
                 }
                 var importandoActivos by remember {
                     mutableStateOf(false)
@@ -352,6 +368,7 @@ class MainActivity : ComponentActivity() {
                                     borradorSeleccionado?.let { borrador ->
                                         EditarBorradorScreen(
                                             borrador = borrador,
+                                            activos = activos,
                                             guardando = guardandoMantenimiento,
                                             mensaje = mensajeMantenimiento,
 
@@ -777,12 +794,14 @@ class MainActivity : ComponentActivity() {
                                                     idRegistro,
                                                     codigoActivo,
                                                     proyecto,
+                                                    ciudad,
                                                     kilometraje,
                                                     horometro,
                                                     huellas,
                                                     estadoGeneral,
                                                     novedad,
-                                                    nombreTecnico ->
+                                                    nombreTecnico,
+                                                    fotoUri ->
 
                                                 if (!guardandoHuella) {
                                                     guardandoHuella = true
@@ -792,12 +811,14 @@ class MainActivity : ComponentActivity() {
                                                         idRegistro = idRegistro,
                                                         codigoActivo = codigoActivo,
                                                         proyecto = proyecto,
+                                                        ciudad = ciudad,
                                                         kilometraje = kilometraje,
                                                         horometro = horometro,
                                                         huellas = huellas,
                                                         estadoGeneral = estadoGeneral,
                                                         novedad = novedad,
                                                         nombreTecnico = nombreTecnico,
+                                                        fotoUri = fotoUri,
                                                         onFinalizado = {
                                                             guardandoHuella = false
                                                             mensajeHuella =
@@ -815,12 +836,14 @@ class MainActivity : ComponentActivity() {
                                                     idRegistro,
                                                     codigoActivo,
                                                     proyecto,
+                                                    ciudad,
                                                     kilometraje,
                                                     horometro,
                                                     huellas,
                                                     estadoGeneral,
                                                     novedad,
-                                                    nombreTecnico ->
+                                                    nombreTecnico,
+                                                    fotoUri ->
 
                                                 if (!guardandoHuella) {
                                                     guardandoHuella = true
@@ -830,12 +853,14 @@ class MainActivity : ComponentActivity() {
                                                         idRegistro = idRegistro,
                                                         codigoActivo = codigoActivo,
                                                         proyecto = proyecto,
+                                                        ciudad = ciudad,
                                                         kilometraje = kilometraje,
                                                         horometro = horometro,
                                                         huellas = huellas,
                                                         estadoGeneral = estadoGeneral,
                                                         novedad = novedad,
                                                         nombreTecnico = nombreTecnico,
+                                                        fotoUri = fotoUri,
                                                         onFinalizado = {
                                                             guardandoHuella = false
                                                             mensajeHuella =
@@ -874,21 +899,73 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
 
+                                "VULCANIZACION_MENU" -> {
+                                    VulcanizacionMenuScreen(
+                                        mensaje = mensajeHuella.ifBlank {
+                                            mensajeIntervencionLlanta
+                                        },
+                                        onTomaHuella = {
+                                            mensajeHuella = ""
+                                            if (activos.isNotEmpty()) {
+                                                pantallaActual = "TOMA_HUELLA"
+                                            } else {
+                                                ImportadorActivos.cargarActivos(
+                                                    onFinalizado = { datos ->
+                                                        activos = datos.map {
+                                                            activoResumenDesdeMapa(it)
+                                                        }.sortedBy { it.codigo }
+                                                        pantallaActual = "TOMA_HUELLA"
+                                                    },
+                                                    onError = {
+                                                        mensajeHuella = it
+                                                    }
+                                                )
+                                            }
+                                        },
+                                        onIntervencion = {
+                                            mensajeIntervencionLlanta = ""
+                                            if (activos.isNotEmpty()) {
+                                                pantallaActual = "INTERVENCION_LLANTA"
+                                            } else {
+                                                ImportadorActivos.cargarActivos(
+                                                    onFinalizado = { datos ->
+                                                        activos = datos.map {
+                                                            activoResumenDesdeMapa(it)
+                                                        }.sortedBy { it.codigo }
+                                                        pantallaActual = "INTERVENCION_LLANTA"
+                                                    },
+                                                    onError = {
+                                                        mensajeIntervencionLlanta = it
+                                                    }
+                                                )
+                                            }
+                                        },
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+
                                 "TOMA_HUELLA" -> {
                                     TomaHuellaScreen(
-                                        activos = activos,
+                                        activos = activos.filter {
+                                            it.aplicaVulcanizacion &&
+                                                    it.permiteTomaHuella
+                                        },
                                         guardando = guardandoHuella,
                                         mensaje = mensajeHuella,
 
-                                        onGuardar = {
+                                                onGuardar = {
                                                 codigoActivo,
                                                 proyecto,
+                                                ciudad,
                                                 kilometraje,
                                                 horometro,
                                                 huellas,
                                                 estadoGeneral,
                                                 novedad,
                                                 nombreTecnico,
+                                                fotoUri,
                                                 estadoRegistro ->
 
                                             if (!guardandoHuella) {
@@ -902,12 +979,14 @@ class MainActivity : ComponentActivity() {
                                                 VulcanizacionRepository.guardarTomaHuella(
                                                     codigoActivo = codigoActivo,
                                                     proyecto = proyecto,
+                                                    ciudad = ciudad,
                                                     kilometraje = kilometraje,
                                                     horometro = horometro,
                                                     huellas = huellas,
                                                     estadoGeneral = estadoGeneral,
                                                     novedad = novedad,
                                                     nombreTecnico = nombreTecnico,
+                                                    fotoUri = fotoUri,
                                                     estadoRegistro = estadoRegistro,
                                                     onFinalizado = { idRegistro ->
                                                         guardandoHuella = false
@@ -1141,7 +1220,10 @@ class MainActivity : ComponentActivity() {
 
                                 "INTERVENCION_LLANTA" -> {
                                     IntervencionLlantaScreen(
-                                        activos = activos,
+                                        activos = activos.filter {
+                                            it.aplicaVulcanizacion &&
+                                                    it.permiteIntervencionLlanta
+                                        },
                                         guardando = guardandoIntervencionLlanta,
                                         mensaje = mensajeIntervencionLlanta,
 
@@ -1256,7 +1338,10 @@ class MainActivity : ComponentActivity() {
 
                                 "NUEVO_MANTENIMIENTO" -> {
                                     NuevoMantenimientoScreen(
-                                        activos = activos,
+                                        activos = activos.filter {
+                                            it.permitePreventivo ||
+                                                    it.permiteCorrectivo
+                                        },
                                         guardandoMantenimiento = guardandoMantenimiento,
                                         mensajeMantenimiento = mensajeMantenimiento,
 
@@ -1343,12 +1428,77 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
+                                "USUARIOS" -> {
+                                    UsuariosScreen(
+                                        onVolver = {
+                                            pantallaActual = "MENU"
+                                        }
+                                    )
+                                }
+                                "PROYECTOS" -> {
+                                    ProyectosScreen(
+                                        onVolver = {
+                                            pantallaActual = "MATRIZ_BASE"
+                                        }
+                                    )
+                                }
+                                "GESTION_ACTIVO" -> {
+                                    GestionActivoScreen(
+                                        activo = activoEnEdicion,
+                                        guardando = guardandoActivo,
+                                        mensaje = mensajeGestionActivo,
+                                        onGuardar = { activoActualizado ->
+                                            val esNuevo = activoEnEdicion == null
+
+                                            guardandoActivo = true
+                                            mensajeGestionActivo = "Guardando activo..."
+
+                                            ActivosRepository.guardarActivo(
+                                                activo = activoActualizado,
+                                                esNuevo = esNuevo,
+                                                onFinalizado = {
+                                                    guardandoActivo = false
+                                                    mensajeGestionActivo =
+                                                        "Activo guardado correctamente."
+
+                                                    activos = (
+                                                            activos.filterNot {
+                                                                it.codigo.equals(
+                                                                    activoActualizado.codigo,
+                                                                    ignoreCase = true
+                                                                )
+                                                            } + activoActualizado
+                                                            ).sortedBy { it.codigo }
+
+                                                    activoSeleccionado = activoActualizado
+                                                    activoEnEdicion = activoActualizado
+                                                    pantallaActual = "DETALLE_ACTIVO"
+                                                },
+                                                onError = { mensaje ->
+                                                    guardandoActivo = false
+                                                    mensajeGestionActivo = mensaje
+                                                }
+                                            )
+                                        },
+                                        onVolver = {
+                                            mensajeGestionActivo = ""
+                                            pantallaActual =
+                                                if (activoEnEdicion == null) {
+                                                    "ACTIVOS"
+                                                } else {
+                                                    "DETALLE_ACTIVO"
+                                                }
+                                        }
+                                    )
+                                }
                                 "DETALLE_ACTIVO" -> {
                                     activoSeleccionado?.let { activo ->
                                         DetalleActivoScreen(
                                             activo = activo,
                                             onEditar = {
-                                                // Después crearemos el formulario de edición.
+                                                activoEnEdicion = activo
+                                                mensajeGestionActivo = ""
+                                                pantallaActual = "GESTION_ACTIVO"
                                             },
                                             onVolver = {
                                                 pantallaActual = "ACTIVOS"
@@ -1364,7 +1514,9 @@ class MainActivity : ComponentActivity() {
                                             pantallaActual = "DETALLE_ACTIVO"
                                         },
                                         onAgregarActivo = {
-                                            // Después crearemos el formulario para agregar activos.
+                                            activoEnEdicion = null
+                                            mensajeGestionActivo = ""
+                                            pantallaActual = "GESTION_ACTIVO"
                                         },
                                         onVolver = {
                                             pantallaActual = "MATRIZ_BASE"
@@ -1380,25 +1532,21 @@ class MainActivity : ComponentActivity() {
 
                                             when (modulo) {
 
-                                                "ACTIVOS" -> {
+                                                "PROYECTOS" -> {
+                                                    pantallaActual = "PROYECTOS"
+                                                }
+
+                                                "ACTIVOS",
+                                                "CONFIGURACION_POSICIONES",
+                                                "INDICADORES_INTERVALOS",
+                                                "FORMULARIOS_PERMITIDOS" -> {
                                                     mensajeImportacion = "Cargando activos..."
 
                                                     ImportadorActivos.cargarActivos(
                                                         onFinalizado = { datos ->
 
                                                             activos = datos.map { activo ->
-                                                                ActivoResumen(
-                                                                    codigo = activo["codigo"]?.toString().orEmpty(),
-                                                                    subtipo = activo["subtipo"]?.toString().orEmpty(),
-                                                                    tipo = activo["tipo"]?.toString().orEmpty(),
-                                                                    marca = activo["marca"]?.toString().orEmpty(),
-                                                                    modelo = activo["modelo"]?.toString().orEmpty(),
-                                                                    indicador = activo["indicador"]?.toString().orEmpty(),
-                                                                    horometro = (activo["horometro"] as? Number)?.toDouble(),
-                                                                    kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
-                                                                    ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
-                                                                    status = activo["status"]?.toString().orEmpty()
-                                                                )
+                                                                activoResumenDesdeMapa(activo)
                                                             }.sortedBy { activo ->
                                                                 activo.codigo
                                                             }
@@ -1463,23 +1611,22 @@ class MainActivity : ComponentActivity() {
                                                     pantallaActual = "MATRIZ_BASE"
                                                 }
 
+                                                "Usuarios" -> {
+                                                    pantallaActual = "USUARIOS"
+                                                }
+
+                                                "Vulcanización" -> {
+                                                    mensajeHuella = ""
+                                                    mensajeIntervencionLlanta = ""
+                                                    pantallaActual = "VULCANIZACION_MENU"
+                                                }
+
                                                 "Nuevo mantenimiento" -> {
                                                     if (activos.isEmpty()) {
                                                         ImportadorActivos.cargarActivos(
                                                             onFinalizado = { datos ->
                                                                 activos = datos.map { activo ->
-                                                                    ActivoResumen(
-                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
-                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
-                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
-                                                                        marca = activo["marca"]?.toString().orEmpty(),
-                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
-                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
-                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
-                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
-                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
-                                                                        status = activo["status"]?.toString().orEmpty()
-                                                                    )
+                                                                    activoResumenDesdeMapa(activo)
                                                                 }.sortedBy { activo ->
                                                                     activo.codigo
                                                                 }
@@ -1502,18 +1649,7 @@ class MainActivity : ComponentActivity() {
                                                         ImportadorActivos.cargarActivos(
                                                             onFinalizado = { datos ->
                                                                 activos = datos.map { activo ->
-                                                                    ActivoResumen(
-                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
-                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
-                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
-                                                                        marca = activo["marca"]?.toString().orEmpty(),
-                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
-                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
-                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
-                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
-                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
-                                                                        status = activo["status"]?.toString().orEmpty()
-                                                                    )
+                                                                    activoResumenDesdeMapa(activo)
                                                                 }.sortedBy { activo -> activo.codigo }
 
                                                                 pantallaActual = "TOMA_HUELLA"
@@ -1534,18 +1670,7 @@ class MainActivity : ComponentActivity() {
                                                         ImportadorActivos.cargarActivos(
                                                             onFinalizado = { datos ->
                                                                 activos = datos.map { activo ->
-                                                                    ActivoResumen(
-                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
-                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
-                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
-                                                                        marca = activo["marca"]?.toString().orEmpty(),
-                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
-                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
-                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
-                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
-                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
-                                                                        status = activo["status"]?.toString().orEmpty()
-                                                                    )
+                                                                    activoResumenDesdeMapa(activo)
                                                                 }.sortedBy { activo ->
                                                                     activo.codigo
                                                                 }
@@ -1605,18 +1730,7 @@ class MainActivity : ComponentActivity() {
                                                         ImportadorActivos.cargarActivos(
                                                             onFinalizado = { datos ->
                                                                 activos = datos.map { activo ->
-                                                                    ActivoResumen(
-                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
-                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
-                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
-                                                                        marca = activo["marca"]?.toString().orEmpty(),
-                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
-                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
-                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
-                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
-                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
-                                                                        status = activo["status"]?.toString().orEmpty()
-                                                                    )
+                                                                    activoResumenDesdeMapa(activo)
                                                                 }.sortedBy { it.codigo }
 
                                                                 cargarBorradoresIntervencion()
@@ -1656,7 +1770,8 @@ class MainActivity : ComponentActivity() {
                                                                     observaciones = registro["observaciones"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro)
                                                                 )
                                                             }
                                                             cargandoHistorialIntervencion = false
@@ -1720,6 +1835,7 @@ class MainActivity : ComponentActivity() {
                                                                     id = registro["id"]?.toString().orEmpty(),
                                                                     codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
                                                                     proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    ciudad = registro["ciudad"]?.toString().orEmpty(),
                                                                     kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
                                                                     horometro = (registro["horometro"] as? Number)?.toDouble(),
                                                                     huellas = (1..12).map { posicion ->
@@ -1729,7 +1845,8 @@ class MainActivity : ComponentActivity() {
                                                                     novedad = registro["novedad"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     uidUsuario = registro["uidUsuario"]?.toString().orEmpty(),
-                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                 )
                                                             }
 
@@ -1756,6 +1873,7 @@ class MainActivity : ComponentActivity() {
                                                                     id = registro["id"]?.toString().orEmpty(),
                                                                     codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
                                                                     proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    ciudad = registro["ciudad"]?.toString().orEmpty(),
                                                                     kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
                                                                     horometro = (registro["horometro"] as? Number)?.toDouble(),
                                                                     huellas = (1..12).map { posicion ->
@@ -1765,7 +1883,9 @@ class MainActivity : ComponentActivity() {
                                                                     novedad = registro["novedad"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro),
+                                                                    fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                 )
                                                             }
 
@@ -1793,6 +1913,7 @@ class MainActivity : ComponentActivity() {
                                                                         id = registro["id"]?.toString().orEmpty(),
                                                                         codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
                                                                         proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                        ciudad = registro["ciudad"]?.toString().orEmpty(),
                                                                         kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
                                                                         horometro = (registro["horometro"] as? Number)?.toDouble(),
                                                                         huellas = (1..12).map { posicion ->
@@ -1801,7 +1922,8 @@ class MainActivity : ComponentActivity() {
                                                                         estadoGeneral = registro["estadoGeneral"]?.toString().orEmpty(),
                                                                         novedad = registro["novedad"]?.toString().orEmpty(),
                                                                         nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
-                                                                        estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                        estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                        fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                     )
                                                                 }
 
@@ -1820,18 +1942,7 @@ class MainActivity : ComponentActivity() {
                                                         ImportadorActivos.cargarActivos(
                                                             onFinalizado = { datos ->
                                                                 activos = datos.map { activo ->
-                                                                    ActivoResumen(
-                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
-                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
-                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
-                                                                        marca = activo["marca"]?.toString().orEmpty(),
-                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
-                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
-                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
-                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
-                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
-                                                                        status = activo["status"]?.toString().orEmpty()
-                                                                    )
+                                                                    activoResumenDesdeMapa(activo)
                                                                 }.sortedBy { activo ->
                                                                     activo.codigo
                                                                 }
@@ -1913,6 +2024,7 @@ class MainActivity : ComponentActivity() {
                                                                         id = registro["id"]?.toString().orEmpty(),
                                                                         codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
                                                                         proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                        ciudad = registro["ciudad"]?.toString().orEmpty(),
                                                                         kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
                                                                         horometro = (registro["horometro"] as? Number)?.toDouble(),
                                                                         huellas = (1..12).map { posicion ->
@@ -1922,7 +2034,8 @@ class MainActivity : ComponentActivity() {
                                                                         novedad = registro["novedad"]?.toString().orEmpty(),
                                                                         nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                         estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                        motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                        motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                        fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                     )
                                                                 }
 
@@ -1972,18 +2085,7 @@ class MainActivity : ComponentActivity() {
                                                         ImportadorActivos.cargarActivos(
                                                             onFinalizado = { datos ->
                                                                 activos = datos.map { activo ->
-                                                                    ActivoResumen(
-                                                                        codigo = activo["codigo"]?.toString().orEmpty(),
-                                                                        subtipo = activo["subtipo"]?.toString().orEmpty(),
-                                                                        tipo = activo["tipo"]?.toString().orEmpty(),
-                                                                        marca = activo["marca"]?.toString().orEmpty(),
-                                                                        modelo = activo["modelo"]?.toString().orEmpty(),
-                                                                        indicador = activo["indicador"]?.toString().orEmpty(),
-                                                                        horometro = (activo["horometro"] as? Number)?.toDouble(),
-                                                                        kilometraje = (activo["kilometraje"] as? Number)?.toDouble(),
-                                                                        ubicacionActual = activo["ubicacionActual"]?.toString().orEmpty(),
-                                                                        status = activo["status"]?.toString().orEmpty()
-                                                                    )
+                                                                    activoResumenDesdeMapa(activo)
                                                                 }.sortedBy { it.codigo }
 
                                                                 cargarCentroBorradores()
@@ -2042,7 +2144,8 @@ class MainActivity : ComponentActivity() {
                                                                     ordenTrabajo = registro["ordenTrabajo"]?.toString().orEmpty(),
                                                                     numeroPedido = registro["numeroPedido"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro)
                                                                 )
                                                             }
 
@@ -2062,6 +2165,7 @@ class MainActivity : ComponentActivity() {
                                                                     id = registro["id"]?.toString().orEmpty(),
                                                                     codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
                                                                     proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    ciudad = registro["ciudad"]?.toString().orEmpty(),
                                                                     kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
                                                                     horometro = (registro["horometro"] as? Number)?.toDouble(),
                                                                     huellas = (1..12).map { posicion ->
@@ -2071,7 +2175,9 @@ class MainActivity : ComponentActivity() {
                                                                     novedad = registro["novedad"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro),
+                                                                    fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                 )
                                                             }
 
@@ -2103,7 +2209,8 @@ class MainActivity : ComponentActivity() {
                                                                     observaciones = registro["observaciones"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
-                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty()
+                                                                    motivoDevolucion = registro["motivoDevolucion"]?.toString().orEmpty(),
+                                                                    fechaRegistro = formatearFechaRegistro(registro)
                                                                 )
                                                             }
 
@@ -2175,6 +2282,7 @@ class MainActivity : ComponentActivity() {
                                                                     id = registro["id"]?.toString().orEmpty(),
                                                                     codigoActivo = registro["codigoActivo"]?.toString().orEmpty(),
                                                                     proyecto = registro["proyecto"]?.toString().orEmpty(),
+                                                                    ciudad = registro["ciudad"]?.toString().orEmpty(),
                                                                     kilometraje = (registro["kilometraje"] as? Number)?.toDouble(),
                                                                     horometro = (registro["horometro"] as? Number)?.toDouble(),
                                                                     huellas = (1..12).map { posicion ->
@@ -2184,7 +2292,8 @@ class MainActivity : ComponentActivity() {
                                                                     novedad = registro["novedad"]?.toString().orEmpty(),
                                                                     nombreTecnico = registro["nombreTecnico"]?.toString().orEmpty(),
                                                                     uidUsuario = registro["uidUsuario"]?.toString().orEmpty(),
-                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty()
+                                                                    estadoRegistro = registro["estadoRegistro"]?.toString().orEmpty(),
+                                                                    fotoUrl = registro["fotoUrl"]?.toString().orEmpty()
                                                                 )
                                                             }
                                                             finalizarRevision()
@@ -2222,7 +2331,10 @@ class MainActivity : ComponentActivity() {
                                                             registrarErrorRevision("Intervenciones: $mensaje")
                                                         }
                                                     )
-                                                }                                                "Reportes" -> {
+                                                }
+
+                                                "Panel gerencial",
+                                                "Reportes" -> {
                                                 cargandoReportes = true
                                                 mensajeReportes = "Cargando indicadores..."
                                                 resumenReportes = null

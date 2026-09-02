@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,22 +74,71 @@ fun NuevoMantenimientoScreen(
         it.codigo.equals(codigoActivo.trim(), ignoreCase = true)
     }
 
+    val errorIndicadores = validarIndicadoresActivo(
+        activo = activoEncontrado,
+        kilometraje = kilometraje,
+        horometro = horometro
+    )
+
+    fun servicioPermitido(
+        activo: ActivoResumen,
+        servicio: String
+    ): Boolean {
+        return when (servicio.uppercase()) {
+            "PREVENTIVO" -> activo.permitePreventivo
+            "CORRECTIVO" -> activo.permiteCorrectivo
+            else -> false
+        }
+    }
+
+    LaunchedEffect(activoEncontrado?.codigo) {
+        val activo = activoEncontrado ?: return@LaunchedEffect
+
+        if (!activo.usaKilometraje) {
+            kilometraje = ""
+        }
+
+        if (!activo.usaHorometro) {
+            horometro = ""
+        }
+
+        if (!servicioPermitido(activo, tipoServicio)) {
+            tipoServicio = if (activo.permitePreventivo) {
+                "PREVENTIVO"
+            } else {
+                "CORRECTIVO"
+            }
+        }
+    }
+
     fun guardarDesdeVoz(
         enviar: Boolean
-    ) {
+    ): String {
         val activoActual = activos.firstOrNull {
             it.codigo.equals(codigoActivo.trim(), ignoreCase = true)
         }
 
         if (activoActual == null) {
-            mensajeVoz = "Primero debes seleccionar un activo válido."
-            return
+            return "Primero debes seleccionar un activo válido."
+        }
+
+        if (!servicioPermitido(activoActual, tipoServicio)) {
+            return "El activo no permite mantenimiento ${tipoServicio.lowercase()}."
         }
 
         if (enviar) {
+            val errorIndicador = validarIndicadoresActivo(
+                activo = activoActual,
+                kilometraje = kilometraje,
+                horometro = horometro
+            )
+
+            if (errorIndicador != null) {
+                return errorIndicador
+            }
+
             if (accionEjecutada.isBlank()) {
-                mensajeVoz = "Debes indicar la acción ejecutada antes de enviar."
-                return
+                return "Debes indicar la acción ejecutada antes de enviar."
             }
 
             onEnviar(
@@ -102,7 +152,7 @@ fun NuevoMantenimientoScreen(
                 numeroPedido
             )
 
-            mensajeVoz = "Orden de envío ejecutada."
+            return "Orden de envío ejecutada."
         } else {
             onGuardarBorrador(
                 codigoActivo,
@@ -115,7 +165,7 @@ fun NuevoMantenimientoScreen(
                 numeroPedido
             )
 
-            mensajeVoz = "Orden de guardar borrador ejecutada."
+            return "Orden de guardar borrador ejecutada."
         }
     }
 
@@ -138,23 +188,33 @@ fun NuevoMantenimientoScreen(
                 } else {
                     codigoActivo = activo.codigo
 
-                    kilometraje =
-                        activo.kilometraje
-                            ?.toString()
-                            .orEmpty()
+                    kilometraje = if (activo.usaKilometraje) {
+                        activo.kilometraje?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
 
-                    horometro =
-                        activo.horometro
-                            ?.toString()
-                            .orEmpty()
+                    horometro = if (activo.usaHorometro) {
+                        activo.horometro?.toString().orEmpty()
+                    } else {
+                        ""
+                    }
 
                     "Activo ${activo.codigo} seleccionado."
                 }
             }
 
             is VoiceCommand.ActualizarTipoServicio -> {
-                tipoServicio = comando.valor
-                "Tipo de servicio: ${comando.valor}."
+                val activo = activoEncontrado
+                if (
+                    activo != null &&
+                    !servicioPermitido(activo, comando.valor)
+                ) {
+                    "El activo no permite mantenimiento ${comando.valor.lowercase()}."
+                } else {
+                    tipoServicio = comando.valor
+                    "Tipo de servicio: ${comando.valor}."
+                }
             }
 
             is VoiceCommand.ActualizarKilometraje -> {
@@ -188,17 +248,11 @@ fun NuevoMantenimientoScreen(
             }
 
             VoiceCommand.GuardarBorrador -> {
-                guardarDesdeVoz(
-                    enviar = false
-                )
-                "Guardar borrador."
+                guardarDesdeVoz(enviar = false)
             }
 
             VoiceCommand.EnviarRegistro -> {
-                guardarDesdeVoz(
-                    enviar = true
-                )
-                "Enviar registro."
+                guardarDesdeVoz(enviar = true)
             }
 
             is VoiceCommand.Desconocido -> {
@@ -339,7 +393,8 @@ fun NuevoMantenimientoScreen(
                     },
                     label = {
                         Text("Preventivo")
-                    }
+                    },
+                    enabled = activoEncontrado?.permitePreventivo != false
                 )
 
                 FilterChip(
@@ -349,7 +404,8 @@ fun NuevoMantenimientoScreen(
                     },
                     label = {
                         Text("Correctivo")
-                    }
+                    },
+                    enabled = activoEncontrado?.permiteCorrectivo != false
                 )
             }
 
@@ -360,11 +416,25 @@ fun NuevoMantenimientoScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 label = {
-                    Text("Kilometraje")
+                    Text(
+                        if (activoEncontrado?.usaKilometraje == true) {
+                            "Kilometraje *"
+                        } else {
+                            "Kilometraje"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoEncontrado?.usaKilometraje == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
                 },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
                 ),
+                enabled =
+                    activoEncontrado?.usaKilometraje != false &&
+                            !guardandoMantenimiento,
                 singleLine = true
             )
 
@@ -375,11 +445,25 @@ fun NuevoMantenimientoScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 label = {
-                    Text("Horómetro")
+                    Text(
+                        if (activoEncontrado?.usaHorometro == true) {
+                            "Horómetro *"
+                        } else {
+                            "Horómetro"
+                        }
+                    )
+                },
+                supportingText = {
+                    if (activoEncontrado?.usaHorometro == false) {
+                        Text("No aplica para el indicador de este activo")
+                    }
                 },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
                 ),
+                enabled =
+                    activoEncontrado?.usaHorometro != false &&
+                            !guardandoMantenimiento,
                 singleLine = true
             )
 
@@ -455,6 +539,7 @@ fun NuevoMantenimientoScreen(
                     )
                 },
                 enabled = activoEncontrado != null &&
+                        servicioPermitido(activoEncontrado, tipoServicio) &&
                         !guardandoMantenimiento,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -475,6 +560,8 @@ fun NuevoMantenimientoScreen(
                     )
                 },
                 enabled = activoEncontrado != null &&
+                        servicioPermitido(activoEncontrado, tipoServicio) &&
+                        errorIndicadores == null &&
                         accionEjecutada.isNotBlank() &&
                         !guardandoMantenimiento,
                 modifier = Modifier.fillMaxWidth()

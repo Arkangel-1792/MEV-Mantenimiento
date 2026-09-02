@@ -1,8 +1,8 @@
 package com.luis.mevmantenimiento.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -24,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
@@ -38,26 +38,32 @@ fun EditarBorradorHuellaScreen(
         idRegistro: String,
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
         estadoGeneral: String,
         novedad: String,
-        nombreTecnico: String
+        nombreTecnico: String,
+        fotoUri: String
     ) -> Unit,
     onEnviarBorrador: (
         idRegistro: String,
         codigoActivo: String,
         proyecto: String,
+        ciudad: String,
         kilometraje: String,
         horometro: String,
         huellas: List<String>,
         estadoGeneral: String,
         novedad: String,
-        nombreTecnico: String
+        nombreTecnico: String,
+        fotoUri: String
     ) -> Unit,
     onVolver: () -> Unit
 ) {
+    val uriHandler = LocalUriHandler.current
+
     val activoSeleccionado = remember(
         borrador.codigoActivo,
         activos
@@ -78,6 +84,10 @@ fun EditarBorradorHuellaScreen(
 
     var proyecto by remember {
         mutableStateOf(borrador.proyecto)
+    }
+
+    var ciudad by remember {
+        mutableStateOf(borrador.ciudad)
     }
 
     var kilometraje by remember {
@@ -120,6 +130,22 @@ fun EditarBorradorHuellaScreen(
     var nombreTecnico by remember {
         mutableStateOf(borrador.nombreTecnico)
     }
+
+    var fotoUriNueva by remember {
+        mutableStateOf("")
+    }
+
+    val selectorFoto = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        fotoUriNueva = uri?.toString().orEmpty()
+    }
+
+    val errorIndicadores = validarIndicadoresActivo(
+        activo = activoSeleccionado,
+        kilometraje = kilometraje,
+        horometro = horometro
+    )
 
     val codigoActivo = borrador.codigoActivo
 
@@ -165,18 +191,45 @@ fun EditarBorradorHuellaScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
+            value = ciudad,
+            onValueChange = {
+                ciudad = it
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text("Ciudad")
+            },
+            enabled = !guardando
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
             value = kilometraje,
             onValueChange = {
                 kilometraje = filtrarNumero(it)
             },
             modifier = Modifier.fillMaxWidth(),
             label = {
-                Text("Kilometraje")
+                Text(
+                    if (activoSeleccionado?.usaKilometraje == true) {
+                        "Kilometraje *"
+                    } else {
+                        "Kilometraje"
+                    }
+                )
+            },
+            supportingText = {
+                if (activoSeleccionado?.usaKilometraje == false) {
+                    Text("No aplica para el indicador de este activo")
+                }
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),
-            enabled = !guardando
+            enabled =
+                !guardando &&
+                        activoSeleccionado?.usaKilometraje != false
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -188,12 +241,25 @@ fun EditarBorradorHuellaScreen(
             },
             modifier = Modifier.fillMaxWidth(),
             label = {
-                Text("Horómetro")
+                Text(
+                    if (activoSeleccionado?.usaHorometro == true) {
+                        "Horómetro *"
+                    } else {
+                        "Horómetro"
+                    }
+                )
+            },
+            supportingText = {
+                if (activoSeleccionado?.usaHorometro == false) {
+                    Text("No aplica para el indicador de este activo")
+                }
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),
-            enabled = !guardando
+            enabled =
+                !guardando &&
+                        activoSeleccionado?.usaHorometro != false
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -221,6 +287,12 @@ fun EditarBorradorHuellaScreen(
                 label = {
                     Text("P${indice + 1} - milímetros")
                 },
+                supportingText = {
+                    if (esHuellaCritica(huellas[indice])) {
+                        Text("Huella crítica: 6 mm o menos")
+                    }
+                },
+                isError = esHuellaCritica(huellas[indice]),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
                 ),
@@ -242,6 +314,49 @@ fun EditarBorradorHuellaScreen(
             minLines = 2,
             enabled = !guardando
         )
+
+        if (borrador.fotoUrl.isNotBlank()) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = {
+                    uriHandler.openUri(borrador.fotoUrl)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !guardando
+            ) {
+                Text("Abrir fotografía adjunta")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = {
+                selectorFoto.launch("image/*")
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !guardando
+        ) {
+            Text(
+                if (
+                    borrador.fotoUrl.isBlank() &&
+                    fotoUriNueva.isBlank()
+                ) {
+                    "Adjuntar fotografía"
+                } else {
+                    "Cambiar fotografía"
+                }
+            )
+        }
+
+        if (fotoUriNueva.isNotBlank()) {
+            Text(
+                text = "Nueva fotografía seleccionada.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -274,12 +389,10 @@ fun EditarBorradorHuellaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        FilterChip(
-            selected = true,
-            onClick = {},
-            label = {
-                Text("BORRADOR")
-            }
+        Text(
+            text = "Estado: BORRADOR",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
         )
 
         if (mensaje.isNotBlank()) {
@@ -313,12 +426,14 @@ fun EditarBorradorHuellaScreen(
                     borrador.id,
                     codigoActivo,
                     proyecto,
+                    ciudad,
                     kilometraje,
                     horometro,
                     huellas.toList(),
                     estadoGeneral,
                     novedad,
-                    nombreTecnico
+                    nombreTecnico,
+                    fotoUriNueva
                 )
             },
             modifier = Modifier.fillMaxWidth(),
@@ -347,16 +462,23 @@ fun EditarBorradorHuellaScreen(
                     borrador.id,
                     codigoActivo,
                     proyecto,
+                    ciudad,
                     kilometraje,
                     horometro,
                     huellas.toList(),
                     estadoGeneral,
                     novedad,
-                    nombreTecnico
+                    nombreTecnico,
+                    fotoUriNueva
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !guardando
+            enabled =
+                !guardando &&
+                        errorIndicadores == null &&
+                        nombreTecnico.isNotBlank() &&
+                        estadoGeneral.isNotBlank() &&
+                        huellas.take(cantidadPosiciones).any { it.isNotBlank() }
         ) {
             Text("Enviar registro")
         }
@@ -381,48 +503,7 @@ private fun obtenerCantidadPosicionesBorrador(
     if (activo == null) {
         return 12
     }
-
-    val subtipo =
-        activo.subtipo.trim().uppercase()
-
-    val tipo =
-        activo.tipo.trim().uppercase()
-
-    val marca =
-        activo.marca.trim().uppercase()
-
-    val codigo =
-        activo.codigo.trim().uppercase()
-
-    return when {
-        subtipo.contains("CAMIONETA") -> 4
-
-        (
-                subtipo.contains("VOLQUETA") ||
-                        tipo.contains("VOLQUETA") ||
-                        codigo.startsWith("VVOLQ")
-                ) &&
-                marca.contains("SHACMAN") -> 12
-
-        subtipo.contains("VOLQUETA") ||
-                tipo.contains("VOLQUETA") ||
-                codigo.startsWith("VVOLQ") -> 10
-
-        subtipo.contains("CAMION") ||
-                subtipo.contains("CAMIÓN") ||
-                subtipo.contains("CABEZAL") ||
-                subtipo.contains("TANQUERO") -> 6
-
-        subtipo.contains("RODILLO") ||
-                subtipo.contains("COMPACTADOR") -> 2
-
-        subtipo.contains("RETROEXCAVADORA") ||
-                subtipo.contains("MINICARGADORA") -> 4
-
-        subtipo.contains("MOTONIVELADORA") -> 6
-
-        else -> 4
-    }
+    return cantidadPosicionesDelActivo(activo)
 }
 
 private fun limpiarPosicionesNoAplicables(

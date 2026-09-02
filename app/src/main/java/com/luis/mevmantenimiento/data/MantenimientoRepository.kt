@@ -1,6 +1,7 @@
 package com.luis.mevmantenimiento.data
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -148,7 +149,7 @@ object MantenimientoRepository {
                             .apply {
                                 this["id"] = documento.id
                             }
-                    }
+                    }.sortedByDescending(::fechaOrden)
 
                 onFinalizado(lista)
             }
@@ -205,7 +206,9 @@ object MantenimientoRepository {
                             }
                     }
 
-                onFinalizado(lista)
+                onFinalizado(
+                    lista.sortedByDescending(::fechaOrden)
+                )
             }
             .addOnFailureListener { error ->
                 onError(
@@ -384,7 +387,7 @@ object MantenimientoRepository {
             return
         }
 
-        val cambios = mapOf<String, Any>(
+        val cambios = mapOf<String, Any?>(
             "estadoRegistro" to ESTADO_DEVUELTO,
             "motivoDevolucion" to motivoNormalizado,
             "fechaDevolucion" to
@@ -514,13 +517,13 @@ object MantenimientoRepository {
             return
         }
 
-        val cambios = mapOf<String, Any>(
+        val cambios = mapOf<String, Any?>(
             "tipoServicio" to
                     tipoServicio.trim().uppercase(),
             "kilometraje" to
-                    (convertirNumero(kilometraje) ?: 0.0),
+                    convertirNumero(kilometraje),
             "horometro" to
-                    (convertirNumero(horometro) ?: 0.0),
+                    convertirNumero(horometro),
             "accionEjecutada" to
                     accionEjecutada.trim(),
             "observaciones" to
@@ -560,5 +563,15 @@ object MantenimientoRepository {
             .trim()
             .replace(",", ".")
             .toDoubleOrNull()
+    }
+
+    private fun fechaOrden(
+        registro: Map<String, Any?>
+    ): Long {
+        return (
+                registro["fechaEnvio"] as? Timestamp
+                    ?: registro["fechaActualizacion"] as? Timestamp
+                    ?: registro["fechaCreacion"] as? Timestamp
+                )?.toDate()?.time ?: 0L
     }
 }

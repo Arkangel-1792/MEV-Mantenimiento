@@ -1,0 +1,160 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(
+        /databases/$(database)/documents/usuarios/$(request.auth.uid)
+      ).data;
+    }
+
+    function usuarioActivo() {
+      return autenticado() && perfil().estadoUsuario == 'ACTIVO';
+    }
+
+    function rol() {
+      return perfil().rol;
+    }
+
+    function esPlanificador() {
+      return usuarioActivo() && rol() == 'PLANIFICADOR';
+    }
+
+    function administraMatriz() {
+      return usuarioActivo() && rol() in [
+        'PLANIFICADOR',
+        'JEFE_OPERACIONES',
+        'GERENTE_GENERAL'
+      ];
+    }
+
+    function revisaRegistros() {
+      return usuarioActivo() && rol() in [
+        'SUPERVISOR_MANTENIMIENTO',
+        'ANALISTA_MANTENIMIENTO',
+        'ASISTENTE_PLANIFICACION',
+        'PLANIFICADOR'
+      ];
+    }
+
+    function consultaReportes() {
+      return usuarioActivo() && rol() in [
+        'ANALISTA_MANTENIMIENTO',
+        'ASISTENTE_PLANIFICACION',
+        'PLANIFICADOR',
+        'JEFE_OPERACIONES',
+        'GERENTE_GENERAL'
+      ];
+    }
+
+    function esAutor(datos) {
+      return usuarioActivo() &&
+        datos.uidUsuario == request.auth.uid;
+    }
+
+    function estadoEditable(estado) {
+      return estado in ['BORRADOR', 'DEVUELTO'];
+    }
+
+    function estadoCreacionValido(estado) {
+      return estado in ['BORRADOR', 'ENVIADO'];
+    }
+
+    function estadoRevisionValido(estado) {
+      return estado in ['APROBADO', 'DEVUELTO'];
+    }
+
+    match /usuarios/{uid} {
+      allow get: if usuarioActivo() &&
+        (request.auth.uid == uid || esPlanificador());
+      allow list: if esPlanificador();
+      allow create, update: if esPlanificador();
+      allow delete: if false;
+    }
+
+    match /activos/{codigo} {
+      allow read: if usuarioActivo();
+      allow create, update: if administraMatriz();
+      allow delete: if false;
+    }
+
+    match /proyectos/{proyectoId} {
+      allow read: if usuarioActivo();
+      allow create, update: if administraMatriz();
+      allow delete: if false;
+    }
+
+    match /registros_mantenimiento/{registroId} {
+      allow create: if usuarioActivo() &&
+        request.resource.data.uidUsuario == request.auth.uid &&
+        estadoCreacionValido(request.resource.data.estadoRegistro);
+
+      allow read: if esAutor(resource.data) ||
+        revisaRegistros() || consultaReportes();
+
+      allow update: if (
+          esAutor(resource.data) &&
+          estadoEditable(resource.data.estadoRegistro) &&
+          request.resource.data.uidUsuario == request.auth.uid &&
+          estadoCreacionValido(request.resource.data.estadoRegistro)
+        ) || (
+          revisaRegistros() &&
+          resource.data.estadoRegistro == 'ENVIADO' &&
+          request.resource.data.uidUsuario == resource.data.uidUsuario &&
+          estadoRevisionValido(request.resource.data.estadoRegistro)
+        );
+
+      allow delete: if false;
+    }
+
+    match /tomas_huella/{registroId} {
+      allow create: if usuarioActivo() &&
+        request.resource.data.uidUsuario == request.auth.uid &&
+        estadoCreacionValido(request.resource.data.estadoRegistro);
+
+      allow read: if esAutor(resource.data) ||
+        revisaRegistros() || consultaReportes();
+
+      allow update: if (
+          esAutor(resource.data) &&
+          estadoEditable(resource.data.estadoRegistro) &&
+          request.resource.data.uidUsuario == request.auth.uid &&
+          estadoCreacionValido(request.resource.data.estadoRegistro)
+        ) || (
+          revisaRegistros() &&
+          resource.data.estadoRegistro == 'ENVIADO' &&
+          request.resource.data.uidUsuario == resource.data.uidUsuario &&
+          estadoRevisionValido(request.resource.data.estadoRegistro)
+        );
+
+      allow delete: if false;
+    }
+
+    match /intervenciones_llanta/{registroId} {
+      allow create: if usuarioActivo() &&
+        request.resource.data.uidUsuario == request.auth.uid &&
+        estadoCreacionValido(request.resource.data.estadoRegistro);
+
+      allow read: if esAutor(resource.data) ||
+        revisaRegistros() || consultaReportes();
+
+      allow update: if (
+          esAutor(resource.data) &&
+          estadoEditable(resource.data.estadoRegistro) &&
+          request.resource.data.uidUsuario == request.auth.uid &&
+          estadoCreacionValido(request.resource.data.estadoRegistro)
+        ) || (
+          revisaRegistros() &&
+          resource.data.estadoRegistro == 'ENVIADO' &&
+          request.resource.data.uidUsuario == resource.data.uidUsuario &&
+          estadoRevisionValido(request.resource.data.estadoRegistro)
+        );
+
+      allow delete: if false;
+    }
+  }
+}

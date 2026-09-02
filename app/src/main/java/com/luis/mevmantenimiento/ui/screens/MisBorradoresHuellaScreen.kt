@@ -26,6 +26,7 @@ data class BorradorHuella(
     val id: String,
     val codigoActivo: String,
     val proyecto: String,
+    val ciudad: String,
     val kilometraje: Double?,
     val horometro: Double?,
     val huellas: List<Double?>,
@@ -33,7 +34,8 @@ data class BorradorHuella(
     val novedad: String,
     val nombreTecnico: String,
     val estadoRegistro: String,
-    val motivoDevolucion: String = ""
+    val motivoDevolucion: String = "",
+    val fotoUrl: String = ""
 )
 
 @Composable
@@ -165,6 +167,10 @@ private fun TarjetaBorradorHuella(
                 Text(
                     text = "Proyecto: ${borrador.proyecto}"
                 )
+            }
+
+            if (borrador.ciudad.isNotBlank()) {
+                Text(text = "Ciudad: ${borrador.ciudad}")
             }
 
             borrador.kilometraje?.let { kilometraje ->

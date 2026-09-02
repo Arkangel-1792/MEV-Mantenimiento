@@ -190,6 +190,10 @@ private fun obtenerOpcionesPorRol(
                 descripcion = "Consultar, editar y enviar registros pendientes."
             ),
             OpcionMenu(
+                titulo = "Mi historial",
+                descripcion = "Consultar los registros enviados anteriormente."
+            ),
+            OpcionMenu(
                 titulo = "Vulcanización",
                 descripcion = "Registrar tomas de huella e intervenciones."
             ),
@@ -289,6 +293,14 @@ private fun opcionesSupervisor(): List<OpcionMenu> {
         OpcionMenu(
             titulo = "Vulcanización",
             descripcion = "Registrar tomas de huella e intervenciones."
+        ),
+        OpcionMenu(
+            titulo = "Mis borradores",
+            descripcion = "Continuar registros propios pendientes o devueltos."
+        ),
+        OpcionMenu(
+            titulo = "Mi historial",
+            descripcion = "Consultar los registros enviados anteriormente."
         ),
         OpcionMenu(
             titulo = "Revisión de registros",
