@@ -81,6 +81,7 @@ import com.luis.mevmantenimiento.data.ReportesRepository
 import com.luis.mevmantenimiento.data.ExportadorReportes
 import com.luis.mevmantenimiento.data.ReporteDatos
 import com.luis.mevmantenimiento.data.FiltrosReporte
+import com.luis.mevmantenimiento.data.PermisosRol
 import com.luis.mevmantenimiento.ui.screens.UsuariosScreen
 
 class MainActivity : ComponentActivity() {
@@ -350,6 +351,12 @@ class MainActivity : ComponentActivity() {
                                     pantallaActual = "MENU"
                                 }
                             )
+                        } else if (!PermisosRol.puedeAccederPantalla(
+                                perfilUsuario!!.rol,
+                                pantallaActual
+                            )
+                        ) {
+                            pantallaActual = "MENU"
                         } else {
                             when (pantallaActual) {
                                 "EDITAR_BORRADOR" -> {
@@ -1364,6 +1371,9 @@ class MainActivity : ComponentActivity() {
                                     activoSeleccionado?.let { activo ->
                                         DetalleActivoScreen(
                                             activo = activo,
+                                            puedeAdministrar = PermisosRol.puedeAdministrarMatriz(
+                                                perfilUsuario!!.rol
+                                            ),
                                             onEditar = {
                                                 // Después crearemos el formulario de edición.
                                             },
@@ -1376,6 +1386,9 @@ class MainActivity : ComponentActivity() {
                                 "ACTIVOS" -> {
                                     ActivosScreen(
                                         activos = activos,
+                                        puedeAdministrar = PermisosRol.puedeAdministrarMatriz(
+                                            perfilUsuario!!.rol
+                                        ),
                                         onSeleccionarActivo = { activo ->
                                             activoSeleccionado = activo
                                             pantallaActual = "DETALLE_ACTIVO"
@@ -1398,6 +1411,9 @@ class MainActivity : ComponentActivity() {
 
                                 "MATRIZ_BASE" -> {
                                     MatrizBaseScreen(
+                                        puedeAdministrar = PermisosRol.puedeAdministrarMatriz(
+                                            perfilUsuario!!.rol
+                                        ),
                                         importandoActivos = importandoActivos,
                                         progresoImportacion = progresoImportacion,
                                         mensajeImportacion = mensajeImportacion,

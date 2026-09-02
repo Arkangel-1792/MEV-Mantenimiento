@@ -30,6 +30,26 @@ service cloud.firestore {
       return reviewer() || roleIn(['JEFE_OPERACIONES', 'GERENTE_GENERAL']);
     }
 
+    function canCreateMaintenance() {
+      return roleIn([
+        'TECNICO_MECANICO',
+        'SUPERVISOR_MANTENIMIENTO',
+        'ANALISTA_MANTENIMIENTO',
+        'ASISTENTE_PLANIFICACION',
+        'PLANIFICADOR'
+      ]);
+    }
+
+    function canCreateTireRecord() {
+      return roleIn([
+        'VULCANIZADOR',
+        'SUPERVISOR_MANTENIMIENTO',
+        'ANALISTA_MANTENIMIENTO',
+        'ASISTENTE_PLANIFICACION',
+        'PLANIFICADOR'
+      ]);
+    }
+
     function validUserProfile() {
       return request.resource.data.nombres is string
         && request.resource.data.apellidos is string
@@ -80,21 +100,21 @@ service cloud.firestore {
 
     match /registros_mantenimiento/{recordId} {
       allow read: if active() && (resource.data.uidUsuario == request.auth.uid || reporter());
-      allow create: if active() && validNewRecord();
+      allow create: if canCreateMaintenance() && validNewRecord();
       allow update: if active() && (ownerCorrection() || reviewTransition());
       allow delete: if false;
     }
 
     match /tomas_huella/{recordId} {
       allow read: if active() && (resource.data.uidUsuario == request.auth.uid || reporter());
-      allow create: if active() && validNewRecord();
+      allow create: if canCreateTireRecord() && validNewRecord();
       allow update: if active() && (ownerCorrection() || reviewTransition());
       allow delete: if false;
     }
 
     match /intervenciones_llanta/{recordId} {
       allow read: if active() && (resource.data.uidUsuario == request.auth.uid || reporter());
-      allow create: if active() && validNewRecord();
+      allow create: if canCreateTireRecord() && validNewRecord();
       allow update: if active() && (ownerCorrection() || reviewTransition());
       allow delete: if false;
     }

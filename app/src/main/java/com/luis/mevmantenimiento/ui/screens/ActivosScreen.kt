@@ -42,6 +42,7 @@ data class ActivoResumen(
 @Composable
 fun ActivosScreen(
     activos: List<ActivoResumen>,
+    puedeAdministrar: Boolean,
     onSeleccionarActivo: (ActivoResumen) -> Unit,
     onAgregarActivo: () -> Unit,
     onVolver: () -> Unit
@@ -86,7 +87,11 @@ fun ActivosScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Consulta y administración de los equipos registrados.",
+                text = if (puedeAdministrar) {
+                    "Consulta y administración de los equipos registrados."
+                } else {
+                    "Consulta de los equipos registrados."
+                },
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -123,11 +128,13 @@ fun ActivosScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Button(
-                onClick = onAgregarActivo,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Agregar activo")
+            if (puedeAdministrar) {
+                Button(
+                    onClick = onAgregarActivo,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Agregar activo")
+                }
             }
         }
 

@@ -6,12 +6,12 @@ Aplicación Android para registrar, revisar y analizar actividades de mantenimie
 
 ## Estado del proyecto
 
-- Versión: `1.1.0-beta07` (`versionCode 7`)
+- Versión: `1.1.0-beta08` (`versionCode 8`)
 - Rama de trabajo: `LuisB/usuarios-apk`
 - Plataformas: Android 8.0 o superior (`minSdk 26`) y navegador web moderno
 - Estado: versión beta demostrable para evaluación académica
-- Pruebas automatizadas: Android 12 aprobadas y web 18 aprobadas
-- APK de demostración: `entregables/MEV-Mantenimiento-1.1.0-beta07-debug.apk`
+- Pruebas automatizadas: Android 16 aprobadas y web 18 aprobadas
+- APK de demostración: `entregables/MEV-Mantenimiento-1.1.0-beta08-debug.apk`
 - Versión web: `web/` (`2.2.0`), conectada al mismo proyecto Firebase
 
 ## Funcionalidades implementadas
@@ -81,7 +81,7 @@ Usuario
 - `JEFE_OPERACIONES`: reportes y consulta de matriz base.
 - `GERENTE_GENERAL`: reportes y opciones gerenciales.
 
-> La versión beta aplica la visibilidad de opciones desde el perfil recuperado de Firestore. La administración de usuarios está disponible para `PLANIFICADOR`; el panel gerencial especializado queda como trabajo futuro. La interfaz no sustituye la necesidad de reglas de seguridad de Firestore para una publicación productiva.
+> La versión beta aplica tanto visibilidad de opciones como control de acceso a pantallas según el perfil recuperado de Firestore. La administración de usuarios y de la matriz base está reservada al `PLANIFICADOR`; jefatura y gerencia acceden a la matriz en modo consulta. Las reglas incluidas en `web/firebase/firestore.rules` deben publicarse en Firebase para aplicar la misma jerarquía a los datos.
 
 ## Requisitos de desarrollo
 
@@ -97,7 +97,7 @@ Usuario
 2. Crear los perfiles de usuario en la colección `usuarios`, usando el UID de Authentication como ID del documento.
 3. Incluir al menos: `nombres`, `apellidos`, `cargo`, `rol`, `estadoUsuario` y `email`.
 4. Cargar el catálogo en la colección `activos`; el archivo base de ejemplo se encuentra en `app/src/main/assets/inventario_activos_firestore.json`.
-5. Definir y probar reglas de seguridad antes de usar información real.
+5. Publicar y probar las reglas de seguridad incluidas en `web/firebase/firestore.rules` antes de usar información real.
 
 Ejemplo mínimo de perfil:
 
@@ -129,7 +129,8 @@ Las pruebas automatizadas verifican:
 - reconocimiento de activos como tractor y minicargadora;
 - interpretación de “mantenimiento realizado”;
 - separación de varios campos en un solo dictado;
-- aceptación de huellas hasta 26 mm y rechazo de valores superiores.
+- aceptación de huellas hasta 26 mm y rechazo de valores superiores;
+- acceso a pantallas y administración de matriz de acuerdo con el rol.
 
 ## Uso de la voz
 
@@ -174,7 +175,7 @@ Las versiones editables en Word se conservan en la misma carpeta.
 ## Limitaciones conocidas y trabajo futuro
 
 - Completar el panel gerencial especializado.
-- Implementar reglas de seguridad de Firestore por rol y validar la autorización también en backend.
+- Publicar y mantener sincronizadas las reglas de seguridad de Firestore incluidas en el repositorio.
 - Incorporar cambio de correo y autoservicio avanzado de cuentas.
 - Añadir adjuntos fotográficos mediante almacenamiento seguro.
 - Ampliar pruebas instrumentadas, de conectividad, rendimiento y usabilidad con usuarios reales.

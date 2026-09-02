@@ -177,7 +177,7 @@ private fun OpcionMenuCard(
 private fun obtenerOpcionesPorRol(
     rol: String
 ): List<OpcionMenu> {
-    return when (rol) {
+    return when (rol.trim().uppercase()) {
 
         "TECNICO_MECANICO" -> listOf(
             OpcionMenu(
@@ -232,8 +232,12 @@ private fun obtenerOpcionesPorRol(
                 descripcion = "Consultar, editar y enviar registros pendientes."
             ),
             OpcionMenu(
-                titulo = "Vulcanización",
-                descripcion = "Registrar tomas de huella e intervenciones."
+                titulo = "Toma general de huella",
+                descripcion = "Registrar la condición general de las llantas."
+            ),
+            OpcionMenu(
+                titulo = "Intervención de llanta",
+                descripcion = "Registrar cambios, reparaciones, rotaciones o bajas."
             ),
             OpcionMenu(
                 titulo = "Revisión de registros",
@@ -307,7 +311,7 @@ private fun obtenerOpcionesPorRol(
             ),
             OpcionMenu(
                 titulo = "Matriz base",
-                descripcion = "Consultar y actualizar la configuración de activos."
+                descripcion = "Consultar el catálogo y la configuración de activos."
             )
         )
 
@@ -317,12 +321,8 @@ private fun obtenerOpcionesPorRol(
                 descripcion = "Consultar indicadores y resultados consolidados."
             ),
             OpcionMenu(
-                titulo = "Reportes",
-                descripcion = "Consultar informes generales por proyecto."
-            ),
-            OpcionMenu(
                 titulo = "Matriz base",
-                descripcion = "Consultar y actualizar la configuración de activos."
+                descripcion = "Consultar el catálogo y la configuración de activos."
             )
         )
 
@@ -337,8 +337,12 @@ private fun opcionesSupervisor(): List<OpcionMenu> {
             descripcion = "Registrar actividades preventivas o correctivas."
         ),
         OpcionMenu(
-            titulo = "Vulcanización",
-            descripcion = "Registrar tomas de huella e intervenciones."
+            titulo = "Toma general de huella",
+            descripcion = "Registrar la condición general de las llantas."
+        ),
+        OpcionMenu(
+            titulo = "Intervención de llanta",
+            descripcion = "Registrar cambios, reparaciones, rotaciones o bajas."
         ),
         OpcionMenu(
             titulo = "Revisión de registros",

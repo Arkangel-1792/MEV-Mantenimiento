@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun DetalleActivoScreen(
     activo: ActivoResumen,
+    puedeAdministrar: Boolean,
     onEditar: () -> Unit,
     onVolver: () -> Unit
 ) {
@@ -72,11 +73,13 @@ fun DetalleActivoScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(
-            onClick = onEditar,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Editar activo")
+        if (puedeAdministrar) {
+            Button(
+                onClick = onEditar,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Editar activo")
+            }
         }
 
         OutlinedButton(

@@ -28,6 +28,7 @@ data class ModuloMatrizBase(
 
 @Composable
 fun MatrizBaseScreen(
+    puedeAdministrar: Boolean,
     importandoActivos: Boolean,
     progresoImportacion: String,
     mensajeImportacion: String,
@@ -35,38 +36,44 @@ fun MatrizBaseScreen(
     onVolver: () -> Unit
 )
 {
-    val modulos = listOf(
-        ModuloMatrizBase(
+    val modulos = buildList {
+        add(ModuloMatrizBase(
             id = "ACTIVOS",
             titulo = "Activos",
-            descripcion = "Consultar, agregar y actualizar los equipos del catálogo maestro."
-        ),
-        ModuloMatrizBase(
+            descripcion = if (puedeAdministrar) {
+                "Consultar, agregar y actualizar los equipos del catálogo maestro."
+            } else {
+                "Consultar los equipos del catálogo maestro."
+            }
+        ))
+        if (puedeAdministrar) {
+        add(ModuloMatrizBase(
             id = "PROYECTOS",
             titulo = "Proyectos y ubicaciones",
             descripcion = "Administrar los proyectos, ciudades y ubicaciones de los activos."
-        ),
-        ModuloMatrizBase(
+        ))
+        add(ModuloMatrizBase(
             id = "CONFIGURACION_POSICIONES",
             titulo = "Configuración de posiciones",
             descripcion = "Definir la cantidad de llantas y posiciones P1 a P12 de cada activo."
-        ),
-        ModuloMatrizBase(
+        ))
+        add(ModuloMatrizBase(
             id = "INDICADORES_INTERVALOS",
             titulo = "Indicadores e intervalos",
             descripcion = "Configurar kilometraje, horómetro e intervalos de mantenimiento."
-        ),
-        ModuloMatrizBase(
+        ))
+        add(ModuloMatrizBase(
             id = "FORMULARIOS_PERMITIDOS",
             titulo = "Formularios permitidos",
             descripcion = "Definir qué registros puede utilizar cada tipo de activo."
-        ),
-        ModuloMatrizBase(
+        ))
+        add(ModuloMatrizBase(
             id = "IMPORTAR_EXCEL",
             titulo = "Actualizar desde Excel",
             descripcion = "Cargar o actualizar el catálogo maestro utilizando el archivo INVENTARIO."
-        )
-    )
+        ))
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -84,7 +91,11 @@ fun MatrizBaseScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Administración del catálogo maestro y configuración de activos.",
+                text = if (puedeAdministrar) {
+                    "Administración del catálogo maestro y configuración de activos."
+                } else {
+                    "Consulta del catálogo maestro y configuración de activos."
+                },
                 style = MaterialTheme.typography.bodyMedium
             )
             if (progresoImportacion.isNotBlank()) {
